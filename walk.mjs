@@ -10,8 +10,10 @@ const keys=new Set();let joystick={x:0,y:0},joyPointer=null;
 const background=new Image(),bear=new Image();let bearBounds;
 const tiles=[{id:'west',left:0,right:560,visibleLeft:0,fade:0,roadTop:764,roadBottom:1122,referenceHeight:1426},{id:'home',left:432,right:1140,visibleLeft:480,fade:80,roadTop:690,roadBottom:917,referenceHeight:1304},{id:'grove',left:803,right:1780,visibleLeft:1060,fade:80,roadTop:687,roadBottom:948,referenceHeight:1313},{id:'forest',left:1532,right:2172,visibleLeft:1670,fade:110,roadTop:784,roadBottom:1046,referenceHeight:1477}].map(t=>({...t,image:new Image()}));
 function resize(){const rect=canvas.getBoundingClientRect();width=rect.width;height=rect.height;dpr=Math.min(devicePixelRatio||1,3);canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';}
-new ResizeObserver(resize).observe(canvas);
-function load(image,url){return new Promise((resolve,reject)=>{image.onload=resolve;image.onerror=()=>reject(Error('画像を読み込めませんでした。再読み込みしてください。'));image.src=url;});}
+if(typeof ResizeObserver==='function')new ResizeObserver(resize).observe(canvas);else window.addEventListener('resize',resize);
+resize();
+let loadedImages=0;
+function load(image,url){return new Promise((resolve,reject)=>{const timer=setTimeout(()=>{image.onload=image.onerror=null;reject(Error('画像の読み込みに時間がかかっています。通信状態を確認して再試行してください。'));},45000);image.onload=()=>{clearTimeout(timer);loadedImages++;window.__islandBoot?.progress(`画像を読み込んでいます… ${loadedImages}/6`);resolve();};image.onerror=()=>{clearTimeout(timer);reject(Error('画像を読み込めませんでした。通信状態を確認して再試行してください。'));};image.src=url;});}
 function alphaBounds(image){const c=document.createElement('canvas');c.width=image.naturalWidth;c.height=image.naturalHeight;const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(image,0,0);const data=x.getImageData(0,0,c.width,c.height).data;let minX=c.width,minY=c.height,maxX=-1,maxY=-1;for(let y=0;y<c.height;y++)for(let px=0;px<c.width;px++)if(data[(y*c.width+px)*4+3]>32){minX=Math.min(minX,px);minY=Math.min(minY,y);maxX=Math.max(maxX,px);maxY=Math.max(maxY,y);}if(maxX<minX)throw Error('キャラ画像を読み込めませんでした。');return{x:minX,y:minY,width:maxX-minX+1,height:maxY-minY+1};}
 function notify(text,seconds=2.5){document.querySelector('#notice').textContent=text;noticeUntil=performance.now()+seconds*1000;}
 function inputVector(){let x=Number(keys.has('arrowright')||keys.has('d'))-Number(keys.has('arrowleft')||keys.has('a')),y=Number(keys.has('arrowdown')||keys.has('s'))-Number(keys.has('arrowup')||keys.has('w'));return x||y?{x,y}:joystick;}
@@ -69,5 +71,5 @@ canvas.addEventListener('pointerup',e=>{if(!pointer||pointer.id!==e.pointerId)re
 for(const event of ['pointercancel','lostpointercapture'])canvas.addEventListener(event,e=>{if(pointer?.id===e.pointerId){pointer=null;releaseStick();}});
 document.querySelector('#reset').addEventListener('click',reset);
 setupMusic(document.querySelector('#bgm'),document.querySelector('#music'),notify,()=>canvas.focus());
-Promise.all([load(background,'./assets/background.png'),load(bear,'./assets/bear-front.png'),...tiles.map(t=>load(t.image,`./assets/tile-${t.id}-soft.png`))]).then(()=>{bearBounds=alphaBounds(bear);prepareTiles();ready=true;loading.hidden=true;canvas.focus();}).catch(e=>{loading.textContent=e.message;});
+Promise.all([load(background,'./assets/background.png'),load(bear,'./assets/bear-front.png'),...tiles.map(t=>load(t.image,`./assets/tile-${t.id}-soft.png`))]).then(()=>{window.__islandBoot?.progress('マップを準備しています…');bearBounds=alphaBounds(bear);prepareTiles();ready=true;if(window.__islandBoot)window.__islandBoot.ready();else loading.hidden=true;canvas.focus();}).catch(e=>{if(window.__islandBoot)window.__islandBoot.fail(e.message);else loading.textContent=e.message;});
 requestAnimationFrame(frame);
