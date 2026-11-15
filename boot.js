@@ -1,5 +1,12 @@
 (function () {
   'use strict';
+  function fitViewport() {
+    var height = window.visualViewport && window.visualViewport.height || window.innerHeight;
+    if (height > 0) document.documentElement.style.setProperty('--island-height', Math.floor(height) + 'px');
+  }
+  window.addEventListener('resize', fitViewport);
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', fitViewport);
+  fitViewport();
   var panel = document.getElementById('loading');
   var message = document.getElementById('loading-message');
   var help = document.getElementById('loading-help');

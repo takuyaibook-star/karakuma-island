@@ -2,7 +2,7 @@ import {MAP,initialState,advance,scaleFor,characterHeight,screenToWorld,areaAt,c
 import {canStand,exitAt} from './terrain.mjs';
 import {findPath} from './navigation.mjs';
 import {setupMusic} from './music.mjs';
-import {drawForestSign} from './decor.mjs';
+import {drawForestSign} from './decor.mjs?v=3';
 const canvas=document.querySelector('#walk'),ctx=canvas.getContext('2d');
 const place=document.querySelector('#place'),clock=document.querySelector('#clock'),loading=document.querySelector('#loading');
 let state=initialState(),width=390,height=844,dpr=1,last=0,phase=0,ready=false,pointer=null,noticeUntil=0,lastPlace='',lastClock='',lastExit='';
@@ -71,5 +71,5 @@ canvas.addEventListener('pointerup',e=>{if(!pointer||pointer.id!==e.pointerId)re
 for(const event of ['pointercancel','lostpointercapture'])canvas.addEventListener(event,e=>{if(pointer?.id===e.pointerId){pointer=null;releaseStick();}});
 document.querySelector('#reset').addEventListener('click',reset);
 setupMusic(document.querySelector('#bgm'),document.querySelector('#music'),notify,()=>canvas.focus());
-Promise.all([load(background,'./assets/background.png'),load(bear,'./assets/bear-front.png'),...tiles.map(t=>load(t.image,`./assets/tile-${t.id}-soft.png`))]).then(()=>{window.__islandBoot?.progress('マップを準備しています…');bearBounds=alphaBounds(bear);prepareTiles();ready=true;if(window.__islandBoot)window.__islandBoot.ready();else loading.hidden=true;canvas.focus();}).catch(e=>{if(window.__islandBoot)window.__islandBoot.fail(e.message);else loading.textContent=e.message;});
+Promise.all([load(background,'./assets/background.png'),load(bear,'./assets/bear-front.png'),...tiles.map(t=>load(t.image,`./assets/tile-${t.id}-soft.png`))]).then(()=>{window.__islandBoot?.progress('マップを準備しています…');bearBounds=alphaBounds(bear);prepareTiles();ready=true;draw();if(window.__islandBoot)window.__islandBoot.ready();else loading.hidden=true;canvas.focus();}).catch(e=>{ready=false;if(window.__islandBoot)window.__islandBoot.fail(e.message);else loading.textContent=e.message;});
 requestAnimationFrame(frame);
