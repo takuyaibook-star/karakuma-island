@@ -1,0 +1,187 @@
+{
+  "url": "https://takuyaibook-star.github.io/karakuma-island/?v=3",
+  "layouts": [
+    {
+      "size": {
+        "width": 320,
+        "height": 568
+      },
+      "boxes": [
+        {
+          "bottom": 568,
+          "left": 0,
+          "right": 320,
+          "selector": ".phone",
+          "top": 0
+        },
+        {
+          "bottom": 568,
+          "left": 0,
+          "right": 320,
+          "selector": "#walk",
+          "top": 0
+        },
+        {
+          "bottom": 71,
+          "left": 12,
+          "right": 308,
+          "selector": ".top",
+          "top": 14
+        },
+        {
+          "bottom": 550,
+          "left": 18,
+          "right": 302,
+          "selector": ".bottom",
+          "top": 481.015625
+        }
+      ]
+    },
+    {
+      "size": {
+        "width": 375,
+        "height": 500
+      },
+      "boxes": [
+        {
+          "bottom": 500,
+          "left": 0,
+          "right": 375,
+          "selector": ".phone",
+          "top": 0
+        },
+        {
+          "bottom": 500,
+          "left": 0,
+          "right": 375,
+          "selector": "#walk",
+          "top": 0
+        },
+        {
+          "bottom": 71,
+          "left": 12,
+          "right": 363,
+          "selector": ".top",
+          "top": 14
+        },
+        {
+          "bottom": 482,
+          "left": 18,
+          "right": 357,
+          "selector": ".bottom",
+          "top": 413.015625
+        }
+      ]
+    },
+    {
+      "size": {
+        "width": 430,
+        "height": 932
+      },
+      "boxes": [
+        {
+          "bottom": 932,
+          "left": 0,
+          "right": 430,
+          "selector": ".phone",
+          "top": 0
+        },
+        {
+          "bottom": 932,
+          "left": 0,
+          "right": 430,
+          "selector": "#walk",
+          "top": 0
+        },
+        {
+          "bottom": 71,
+          "left": 12,
+          "right": 418,
+          "selector": ".top",
+          "top": 14
+        },
+        {
+          "bottom": 914,
+          "left": 18,
+          "right": 412,
+          "selector": ".bottom",
+          "top": 845.015625
+        }
+      ]
+    },
+    {
+      "size": {
+        "width": 844,
+        "height": 390
+      },
+      "boxes": [
+        {
+          "bottom": 390,
+          "left": 207,
+          "right": 637,
+          "selector": ".phone",
+          "top": 0
+        },
+        {
+          "bottom": 390,
+          "left": 208,
+          "right": 636,
+          "selector": "#walk",
+          "top": 0
+        },
+        {
+          "bottom": 71,
+          "left": 220,
+          "right": 624,
+          "selector": ".top",
+          "top": 14
+        },
+        {
+          "bottom": 372,
+          "left": 226,
+          "right": 618,
+          "selector": ".bottom",
+          "top": 303.015625
+        }
+      ]
+    },
+    {
+      "size": {
+        "width": 390,
+        "height": 844
+      },
+      "boxes": [
+        {
+          "bottom": 844,
+          "left": 0,
+          "right": 390,
+          "selector": ".phone",
+          "top": 0
+        },
+        {
+          "bottom": 844,
+          "left": 0,
+          "right": 390,
+          "selector": "#walk",
+          "top": 0
+        },
+        {
+          "bottom": 71,
+          "left": 12,
+          "right": 378,
+          "selector": ".top",
+          "top": 14
+        },
+        {
+          "bottom": 826,
+          "left": 18,
+          "right": 372,
+          "selector": ".bottom",
+          "top": 757.015625
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "ready": "true"
+}
