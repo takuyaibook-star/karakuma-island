@@ -1,0 +1,14 @@
+Create a clean TRANSPARENT PNG growth-sprite atlas for a soft pastel watercolor storybook farming game. Reference 1 defines the art style; reference 2 shows the previous crop atlas to improve and extend. Preserve the recognizable carrot, cabbage, pumpkin and striped watermelon designs, but remove ALL blurry halos/glows and background haze; plants should have clean naturally antialiased opaque watercolor edges against true transparent empty space.
+
+Output EXACTLY a REGULAR GRID of FOUR COLUMNS by FIVE ROWS, with every cell the same size and every plant centered horizontally with its roots/bottom at 80% of the cell height. Desired image 1536 wide by 1920 high. No borders, separators, labels, numbers, text, arrows, pots, dirt or characters. At least 15% transparent padding inside every cell, no sprite crossing a cell boundary.
+
+COLUMNS LEFT TO RIGHT:
+1 carrot, 2 cabbage, 3 pumpkin, 4 watermelon.
+ROWS TOP TO BOTTOM:
+Row 1: tiny sprout for each of the four species, simple bright green two-leaf sprout.
+Row 2: young leafy carrot; small cabbage rosette; small leafy pumpkin vine; small leafy watermelon vine.
+Row 3: RIPE carrot with orange root/shoulder and fluffy leaves; RIPE round pale green cabbage; pumpkin vine with a small GREEN fruit; watermelon vine with a tiny light-green oval fruit.
+Row 4: repeat the same RIPE carrot and RIPE cabbage; RIPE softly ribbed ORANGE pumpkin with a few leaves; watermelon with a medium pale green fruit and faint emerging stripes, still immature.
+Row 5: repeat RIPE carrot, RIPE cabbage, RIPE orange pumpkin; RIPE large oval watermelon with simple clear dark-green stripes and a few leaves.
+Thus carrot and cabbage use 3 stages, pumpkin 4, watermelon 5. Duplicate ripe sprites in unused cells intentionally.
+Uniform low oblique view, warm cream linework, rounded readable shapes, gentle watercolor shading. No dramatic shadows or bloom. The mature pumpkin/watermelon are shown larger within their cell, but still fully contained; the game renders them over two horizontal farm spaces. Only the twelve? NO: exactly TWENTY cell illustrations, four columns by five rows, including intentional repeated ripe plants. Truly transparent background; no solid black/green/white.
