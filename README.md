@@ -1,76 +1,66 @@
-# カラくまちゃんアイランド（仮）
+# カラくまちゃんアイランド
 
-淡い水彩・絵本調の村を、キャラクターで自由に歩くスマートフォン向け試作です。
+淡い水彩・絵本調の世界を自由に歩き、畑でにんじんを育てるスマートフォン向け試作です。
 
-**プレイ：<https://takuyaibook-star.github.io/karakuma-island/?v=3>**
+**初期マップ：<https://takuyaibook-star.github.io/karakuma-island/?v=5>**
 
-現在は散歩・当たり判定・タップ経路・カメラ追従・BGMを実装。ログイン、DB、セーブ、港や釣りは未実装です。港の画像案は実行中のマップとは異なります。
+家の右手の畑への道を上へ進むと畑に入ります。畑の下の道を進むと村へ戻ります。直接の畑URLは <https://takuyaibook-star.github.io/karakuma-island/experiments/farming/?v=5>。
+
+## 操作・育成
+
+- 画面下半分の好きな位置からスワイプ。指を離すと停止。矢印/WASDでも移動。
+- 道をタップすると障害物を避けて移動。
+- 畑に近づくと、キャラの足元に耕す/種まき/水やり/収穫のボタンが出る。
+- 水やりから5秒で芽。芽から2分で育ち中、芽から5分で収穫。ボタンに残り時間を表示。
+- 水は3回で空。左の水くみ場に近づき補充する。
+- 「鞄」でアイテムボックス。通常とカラフルは別アイテム。種は試作中は使い放題。
+- ♪でBGM ON/OFF。初期ON、実操作後に再生。効果音は試作設定で切替。
+
+畑・持ち物・水は端末のブラウザ内に保存します。別の端末とは共有されません。ログイン、共通DB、コイン連携は未実装。枯れる時間も未設定です。野菜の浮き、装備切替、開墾ルール、BGMのページ移動時再開などは[TODO.md](TODO.md)に記録しています。
 
 ## 開発を引き継ぐ
 
-最初に[AGENTS.md](AGENTS.md)、[PROJECT_STATUS.md](PROJECT_STATUS.md)、[TODO.md](TODO.md)を読んでください。コード・進捗・未検証事項をこのリポジトリに残し、チャットがなくても再開できる状態を維持します。
+最初に[AGENTS.md](AGENTS.md)、[PROJECT_STATUS.md](PROJECT_STATUS.md)、[TODO.md](TODO.md)を読み、既存ブランチ・remote・未コミット変更・GitHub最新を確認してください。他環境の変更を破棄しないでください。
 
-既存mainを使い、作業前にgit status、branch、remote、最新履歴を確認してください。他環境の変更を取り込む際はfast-forward可能か確認し、未コミット作業や競合を勝手に破棄しないでください。
-
-## 環境と起動
-
-HTML / CSS / 標準JavaScript / Canvas 2Dによる静的サイトです。npm依存、ビルド処理、.env、APIキーは不要。Python 3でHTTP配信し、Node.js 20以上で同梱単体テストを実行できます。file://で直接開かず、HTTPで起動してください。
+HTML/CSS/標準JavaScript/Canvas 2Dの静的サイト。ビルド・npm依存・APIキー・.envは不要です。
 
 ```sh
 git clone https://github.com/takuyaibook-star/karakuma-island.git
 cd karakuma-island
-python3 -m http.server 5192 --bind 127.0.0.1
+python3 -m http.server 5193 --bind 127.0.0.1
 ```
 
-ブラウザで <http://127.0.0.1:5192/> を開きます。他の開発サーバーが5192を使っていたら停止せず、別ポートにしてください。ローカルサーバーをインターネットへ無認証で公開しないでください。
+<http://127.0.0.1:5193/> で確認します。使われているポートのサーバーを止めず、別ポートを選んでください。file://で直接開かないでください。
 
-## 操作
+```sh
+node --test tests/*.test.*
+```
 
-- 矢印キー／WASDで移動。
-- 画面下半分の好きな位置からスワイプして移動。離すと停止。
-- 道の短いタップで、その位置まで通れる経路を探して移動。
-- 「♪」でBGM ON/OFF。初期ONですがブラウザの制限により初回操作後に再生します。
-- 「最初の位置へ」で家の前へ戻る。別マップへの切り替えはまだありません。
+Node 20以上。既存の移動15項目に加え起動、旧描画API、成長境界、水、アイテム、保存、経路、装備表示、効果音、収穫演出、マップ接続を確認します。自動テストはiPhone実機の代用ではありません。
 
-## ファイル構成
+## 構成
 
 | ファイル | 役割 |
 |---|---|
-| index.html | 画面・レイアウト・CSP・読み込み案内 |
-| boot.js | 起動監視・再試行・表示領域の高さ調整 |
-| walk.mjs | 画像読込・背景合成・描画・入力 |
-| model.mjs | 移動速度・キャラサイズ・カメラ |
-| terrain.mjs | 歩行領域・障害物・分岐 |
-| navigation.mjs | タップのA*経路探索 |
-| decor.mjs | 物理的な方向看板 |
-| music.mjs | BGM初期ON・操作後再生・停止／復帰 |
-| assets/ | 現行画像・音源。素材出典は同フォルダREADMEも参照 |
-| tests/ | 既存の起動・看板・移動テスト |
-| docs/harbor-v2.png | 未実装の村と港の接続イメージ |
-| docs/verification-v3.json | v3公開時の画面配置確認記録 |
+| index.html / walk.mjs | 初期マップの画面・入力・描画 |
+| boot.js | 起動監視・再試行・実画像数の読み込みゲージ |
+| model.mjs / terrain.mjs / navigation.mjs | 移動・カメラ・地形・経路 |
+| map-links.mjs | 畑への移動と戻り位置 |
+| music.mjs | BGM設定・操作後再生・背景復帰 |
+| experiments/farming/index.html / view.mjs | 畑の画面・操作・描画 |
+| experiments/farming/farm.mjs / scene.mjs | 畑の状態・時間成長・水・地形 |
+| experiments/farming/items.mjs / storage.mjs | 別アイテムと専用の端末内保存 |
+| experiments/farming/effects.mjs | ローカルSEと収穫演出 |
+| experiments/farming/assets/ | 背景/土/作物/水入りと空のじょうろキャラ、生成条件 |
+| docs/ | デザイン案・確認画像・記録 |
+| tests/ | 単体・回帰テスト |
 
-ルートのコードは公開版そのものです。旧ローカル実験にあった`?qa=1`の位置操作APIは含みません。古い試作のREADMEやテスト手順を現行にそのまま使わないでください。
+保存キーは karakuma-island:farming:v1。他ゲームの保存キーを触らず、未知版/破損データを無断上書きしません。DBバックアップではありません。Supabase接続前には別途バックアップが必要です。
 
-## 検証
+## 公開と素材
 
-```sh
-node --test tests/boot.test.cjs tests/decor.test.mjs tests/model.test.mjs
-```
+GitHub Pagesはmain/rootを配信。資料更新でも配信処理が走ります。コミット保存と本番公開を区別し、内容を確認してから反映してください。_headersはNetlify形式でPagesのヘッダー設定には使われず、CSPはHTMLのmetaです。
 
-モデルの15項目と、起動6テスト・描画1テストを確認します。テスト内のDOM／描画模擬は実機Safariの代用ではありません。
+背景・キャラクターは本作向けの提供/生成素材。各生成条件と採用状態はassets/READMEとPROJECT_STATUSを参照。港・野菜の未実装案を実装済みと混同しないでください。
 
-表示・操作変更では、小型縦320×568、縮んだ表示領域375×500、通常縦390×844、大型縦430×932、横844×390を目安に、ゲーム面と上下操作が枠内か確認します。タップ、下側左右からのスワイプ、指を離した停止、カメラ端、リセット、BGM ON/OFF、非表示復帰、エラー案内も関連範囲に応じ確認してください。ユーザー指定のGPT内ブラウザを優先します。
-
-## 公開と保存
-
-GitHub Pagesはmainのルートをそのまま配信します。資料の更新でも配信処理が走ります。コードの保存と本番公開を混同せず、変更内容・承認範囲・差分を確認してからpushしてください。既存のPages設定やワークフローを無断変更しないでください。
-
-`.nojekyll`で静的ファイルをそのまま配信します。`_headers`はGitHub PagesのHTTPヘッダー設定には使われません。CSPはHTML内metaにあります。認証・DBを追加するときにCSPを単に解除せず、必要な接続先と権限を設計してください。
-
-`docs/`も公開リポジトリの一部です。秘密情報や個人データは置かないでください。GitHubのコード履歴は本番DBのバックアップではありません。本作は現時点でDB未接続です。
-
-## 素材
-
-背景とキャラクターは本プロジェクト用に提供・生成した素材を使用しています。港接続案は現行村素材を参照して組み込み画像生成で作成した方向性確認用で、既存背景と座標・形が完全一致するものではありません。
-
-BGMはユーザーが用意したMotionElements音源のゲーム用AACコピーです。Stock media provided by MotionElements.com。リポジトリに一律のオープンソースライセンスを付与していません。第三者素材を含むため、素材自体の自由な再利用を許諾する資料と扱わないでください。
+BGMはユーザーが用意したMotionElements音源のゲーム用AAC。Stock media provided by MotionElements.com。一律のオープンソース素材ライセンスは付与していません。

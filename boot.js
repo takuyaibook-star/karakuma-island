@@ -11,6 +11,8 @@
   var message = document.getElementById('loading-message');
   var help = document.getElementById('loading-help');
   var retry = document.getElementById('retry');
+  var bar = document.getElementById('loading-progress');
+  var count = document.getElementById('loading-count');
   var done = false;
   function fail(text) {
     if (done) return;
@@ -24,9 +26,16 @@
     fail('起動に時間がかかっています。通信状態を確認して、もう一度お試しください。');
   }, 60000);
   window.__islandBoot = {
-    progress: function (text) { if (!done) message.textContent = text; },
+    progress: function (text, loaded, total) {
+      if (done) return;
+      message.textContent = text;
+      var match = text.match(/(\d+)\/(\d+)/);
+      if (typeof loaded !== 'number' && match) { loaded = Number(match[1]); total = Number(match[2]); }
+      if (bar && total > 0) { bar.max = total; bar.value = loaded; }
+      if (count && total > 0) count.textContent = loaded + ' / ' + total;
+    },
     fail: fail,
-    ready: function () { done = true; clearTimeout(timer); panel.hidden = true; }
+    ready: function () { if (bar) bar.value = bar.max; done = true; clearTimeout(timer); panel.hidden = true; }
   };
   retry.addEventListener('click', function () { window.location.reload(); });
   window.addEventListener('error', function (event) {

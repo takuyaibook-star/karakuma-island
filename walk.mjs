@@ -1,3 +1,4 @@
+import {farmEntryState,destinationForExit} from './map-links.mjs';
 import {MAP,initialState,advance,scaleFor,characterHeight,screenToWorld,areaAt,clampX} from './model.mjs';
 import {canStand,exitAt} from './terrain.mjs';
 import {findPath} from './navigation.mjs';
@@ -5,7 +6,7 @@ import {setupMusic} from './music.mjs';
 import {drawForestSign} from './decor.mjs?v=3';
 const canvas=document.querySelector('#walk'),ctx=canvas.getContext('2d');
 const place=document.querySelector('#place'),clock=document.querySelector('#clock'),loading=document.querySelector('#loading');
-let state=initialState(),width=390,height=844,dpr=1,last=0,phase=0,ready=false,pointer=null,noticeUntil=0,lastPlace='',lastClock='',lastExit='';
+let state=farmEntryState(initialState(),location.search),width=390,height=844,dpr=1,last=0,phase=0,ready=false,pointer=null,noticeUntil=0,lastPlace='',lastClock='',lastExit='';
 const keys=new Set();let joystick={x:0,y:0},joyPointer=null;
 const background=new Image(),bear=new Image();let bearBounds;
 const tiles=[{id:'west',left:0,right:560,visibleLeft:0,fade:0,roadTop:764,roadBottom:1122,referenceHeight:1426},{id:'home',left:432,right:1140,visibleLeft:480,fade:80,roadTop:690,roadBottom:917,referenceHeight:1304},{id:'grove',left:803,right:1780,visibleLeft:1060,fade:80,roadTop:687,roadBottom:948,referenceHeight:1313},{id:'forest',left:1532,right:2172,visibleLeft:1670,fade:110,roadTop:784,roadBottom:1046,referenceHeight:1477}].map(t=>({...t,image:new Image()}));
@@ -61,7 +62,7 @@ function draw(){
  const seconds=Math.floor(state.walkingTime),text=`歩いた時間 ${String(Math.floor(seconds/60)).padStart(2,'0')}:${String(seconds%60).padStart(2,'0')}`;if(text!==lastClock){clock.textContent=text;lastClock=text;}
  document.querySelector('#notice').classList.toggle('visible',performance.now()<noticeUntil);canvas.dataset.ready='true';
 }
-function frame(now){const dt=Math.min((now-last)/1000||0,.05);last=now;if(ready){const before={x:state.x,y:state.y};state=advance(state,inputVector(),dt,width,height);if(state.moving){phase+=Math.hypot(state.x-before.x,state.y-before.y)/MAP.speed*8;document.querySelector('#hint').classList.add('faded');}const exit=exitAt(state);if(exit&&exit.name!==lastExit)notify(`${exit.name}の先は準備中です`);lastExit=exit?.name??'';draw();}requestAnimationFrame(frame);}
+function frame(now){const dt=Math.min((now-last)/1000||0,.05);last=now;if(ready){const before={x:state.x,y:state.y};state=advance(state,inputVector(),dt,width,height);if(state.moving){phase+=Math.hypot(state.x-before.x,state.y-before.y)/MAP.speed*8;document.querySelector('#hint').classList.add('faded');}const exit=exitAt(state),destination=destinationForExit(exit,location.href);if(destination){stop();location.assign(destination);return;}if(exit&&exit.name!==lastExit)notify(`${exit.name}の先は準備中です`);lastExit=exit?.name??'';draw();}requestAnimationFrame(frame);}
 window.addEventListener('keydown',e=>{if(e.target.matches('button,input'))return;const key=e.key.toLowerCase();if(['arrowleft','arrowright','arrowup','arrowdown','a','d','w','s'].includes(key)){e.preventDefault();keys.add(key);}});
 window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));window.addEventListener('blur',stop);document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();});
 function updateSwipe(dx,dy){const norm=Math.hypot(dx,dy),ratio=norm>38?38/norm:1,x=dx*ratio,y=dy*ratio;joystick=norm<6?{x:0,y:0}:{x:x/38,y:y/38};knob.style.transform=`translate(${x}px,${y}px)`;}
