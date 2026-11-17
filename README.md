@@ -20,6 +20,8 @@
 
 ## 開発を引き継ぐ
 
+開墾前/済みとカラフルなスイカ10案の[画像比較](docs/farming-art-review-20261118.html)・[一覧画像](docs/farming-art-review-20261118.jpg)。素材案のみでゲームには未組込。[素材と生成指示](experiments/farming/assets/art-studies-20261118.md)。
+
 最初に[AGENTS.md](AGENTS.md)、[PROJECT_STATUS.md](PROJECT_STATUS.md)、[TODO.md](TODO.md)を読み、既存ブランチ・remote・未コミット変更・GitHub最新を確認してください。他環境の変更を破棄しないでください。
 
 HTML/CSS/標準JavaScript/Canvas 2Dの静的サイト。ビルド・npm依存・APIキー・.envは不要です。
