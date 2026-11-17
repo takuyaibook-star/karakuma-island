@@ -3,13 +3,13 @@
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const base=process.env.TEST_URL||'http://127.0.0.1:5194/';
-const output=process.env.TEST_OUTPUT||'/tmp/karakuma-v6-checks';fs.mkdirSync(output,{recursive:true});
+const output=process.env.TEST_OUTPUT||'/tmp/karakuma-v7-checks';fs.mkdirSync(output,{recursive:true});
 (async()=>{
  const browser=await chromium.launch({headless:true,...(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{})});
  try{
  const context=await browser.newContext({viewport:{width:390,height:844}}),page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.clock.install();
- await page.goto(base+'?map=farm&v=6');let f=page.frameLocator('#map');await f.locator('#loading').waitFor({state:'hidden'});
+ await page.goto(base+'?map=farm&v=7');let f=page.frameLocator('#map');await f.locator('#loading').waitFor({state:'hidden'});
  await page.screenshot({path:path.join(output,'farm-initial-390.png')});
  assert.equal(await f.locator('#tutorial').textContent(),'左下でクワを持って、畑のそばで耕そう！');
  await f.locator('#equip-hoe').click();await f.locator('#farm').focus();await page.keyboard.down('ArrowUp');await page.waitForTimeout(850);await page.keyboard.up('ArrowUp');
