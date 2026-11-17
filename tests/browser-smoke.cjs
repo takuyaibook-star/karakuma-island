@@ -13,10 +13,10 @@ const output=process.env.TEST_OUTPUT||'/tmp/karakuma-v7-checks';fs.mkdirSync(out
  await page.screenshot({path:path.join(output,'farm-initial-390.png')});
  assert.equal(await f.locator('#tutorial').textContent(),'左下でクワを持って、畑のそばで耕そう！');
  await f.locator('#equip-hoe').click();await f.locator('#farm').focus();await page.keyboard.down('ArrowUp');await page.waitForTimeout(850);await page.keyboard.up('ArrowUp');
- await f.locator('#action').filter({hasText:'ここを耕す'}).click();assert.match(await f.locator('#hoe-uses').textContent(),/9回/);await page.waitForTimeout(800);
+ await page.clock.pauseAt(new Date(await page.evaluate(()=>Date.now())+1000));await f.locator('#action').filter({hasText:'ここを耕す'}).click();await page.clock.runFor(250);await page.screenshot({path:path.join(output,'farm-floating-hoe-390.png')});assert.equal(await f.locator('#equip-hoe').getAttribute('aria-pressed'),'true');assert.equal(await f.locator('#action').isEnabled(),false);await page.clock.resume();assert.match(await f.locator('#hoe-uses').textContent(),/9回/);await page.waitForTimeout(800);
  await f.locator('.settings summary').click();await f.locator('#colorful-preview').check();await f.locator('.settings summary').click();
  await f.locator('#action').filter({hasText:'たねをまく'}).click();await f.locator('#equip-watering_can').click();assert.equal(await f.locator('#equip-hoe').getAttribute('aria-pressed'),'false');
- await f.locator('#action').filter({hasText:'みずをまく'}).click();assert.equal(await f.locator('#water-meter').textContent(),'水 2/3');assert.match(await f.locator('#action').textContent(),/芽が出るまで あと\d秒/);
+ await page.clock.pauseAt(new Date(await page.evaluate(()=>Date.now())+1000));await f.locator('#action').filter({hasText:'みずをまく'}).click();await page.clock.runFor(300);await page.screenshot({path:path.join(output,'farm-floating-water-390.png')});assert.equal(await f.locator('#equip-watering_can').getAttribute('aria-pressed'),'true');assert.equal(await f.locator('#equip-hoe').isEnabled(),false);await page.clock.resume();assert.equal(await f.locator('#water-meter').textContent(),'水 2/3');assert.match(await f.locator('#action').textContent(),/芽が出るまで あと\d秒/);
  await page.clock.fastForward(5100);assert.match(await f.locator('#action').textContent(),/育ち中になるまで あと\d分/);
  await page.clock.fastForward(120000);assert.match(await f.locator('#action').textContent(),/収穫まで あと\d分/);
  await page.clock.fastForward(180000);await f.locator('#action').filter({hasText:'収穫する'}).waitFor();
@@ -44,6 +44,6 @@ const output=process.env.TEST_OUTPUT||'/tmp/karakuma-v7-checks';fs.mkdirSync(out
  const lazy=await browser.newContext({viewport:{width:390,height:844}}),village=await lazy.newPage();let release;
  const barrier=new Promise(r=>release=r);await village.route('**/tile-west-soft.png',async route=>{await barrier;await route.continue();});
  await village.goto(base,{waitUntil:'domcontentloaded'});await village.frameLocator('#map').locator('#walk[data-ready=true]').waitFor();await village.screenshot({path:path.join(output,'village-near-first-390.png')});release();await lazy.close();
- fs.writeFileSync(path.join(output,'result.json'),JSON.stringify({passed:true,errors,checks:['new farm and tools','seed/water/growth boundaries','colorful harvest inventory','BGM element and time survive travel','BGM OFF and save survive return','clear land with one-use super hoe','five viewport sizes','village starts before distant image'],output},null,2));console.log('Browser checks passed:',output);
+ fs.writeFileSync(path.join(output,'result.json'),JSON.stringify({passed:true,errors,checks:['new farm and tools','floating plot tools keep equipment and block duplicate actions','seed/water/growth boundaries','colorful harvest inventory','BGM element and time survive travel','BGM OFF and save survive return','clear land with one-use super hoe','five viewport sizes','village starts before distant image'],output},null,2));console.log('Browser checks passed:',output);
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
