@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const code = fs.readFileSync(path.join(__dirname, '../boot.js'), 'utf8');
 function boot(viewport) {
-  const elements = Object.fromEntries(['loading', 'loading-message', 'loading-help', 'retry'].map(id => [id, {
+  const elements = Object.fromEntries(['loading', 'loading-message', 'loading-help', 'retry', 'loading-progress', 'loading-count'].map(id => [id, {
     hidden: id === 'retry' || id === 'loading-help', textContent: '',
     addEventListener(name, handler) { this[name] = handler; }
   }]));
@@ -43,4 +43,12 @@ test('older browsers without visualViewport fall back to innerHeight', () => {
   const b = boot(); assert.equal(b.properties['--island-height'], '568px');
   b.window.innerHeight = 320; b.events.resize();
   assert.equal(b.properties['--island-height'], '320px');
+});
+
+test('real completed-image counts update the progress gauge', () => {
+  const b = boot(); b.api.progress('画像 3/6');
+  assert.equal(b.elements['loading-progress'].max, 6); assert.equal(b.elements['loading-progress'].value, 3);
+  assert.equal(b.elements['loading-count'].textContent, '3 / 6');
+  b.api.progress('画像を読み込んでいます', 7, 10); assert.equal(b.elements['loading-progress'].value, 7);
+  b.api.ready(); assert.equal(b.elements['loading-progress'].value, 10);
 });
