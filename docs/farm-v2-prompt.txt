@@ -1,0 +1,8 @@
+カラくまちゃんの畑 v2：上への道を削除
+ユーザーはv1の草原＋小さな畑の方向性を肯定。上への道は一旦不要との指定。
+v1を参照して組み込み画像生成で編集。上中央の道だけを草地と低木で埋める。下側の村入口、小さな畑、広い草原、道具、障害物の配置と描き方は維持する指示。
+最新画像案：docs/farm-v2.png。v1とその生成条件は比較・由来確認用の旧案として保存。
+画像案でありゲーム未実装。初期4マスや作物・時間・開墾コスト・保存は未確定。上の果樹園への接続は今回設けない。公開中のゲームの動作は変更しない。
+
+編集プロンプト全文：
+Edit this farm concept with ONE precise change only: remove the small peach dirt path at the TOP CENTER that disappears upward between the trees. Replace that top-center path seamlessly with pale yellow-green meadow grass and a few softly rounded low shrubs continuous with the surrounding woodland edge, so there is no exit or implied passage going upward. Preserve everything else exactly: same 1536x1024 composition, camera, pastel watercolor storybook style, trees, flowers, wide empty grass, tiny 2x2 starter field, the two sprouts, wet soil, scattered rocks, stump, barrel, watering can, seed crate, and shovel. Keep the BOTTOM-CENTER village entrance path completely unchanged. Do not add houses, fences, text, characters, UI, a gate, new paths or any new activities. This is a minimal removal of the upper path only.

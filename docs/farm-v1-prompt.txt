@@ -1,0 +1,20 @@
+カラくまちゃんの畑：草原から開墾するマップ画像案 v1
+生成方式：組み込み画像生成。既存の村素材 assets/tile-home-soft.png を参照。
+画像：1536×1024、画像案であり未実装。公開中の散歩ゲームは変更しない。
+ユーザー方針：草原の中に小さな畑。草や石を片づけ、耕し、少しずつ拡張する楽しみを作る。アイランド内の遊びとして最初に野菜育てを進める。
+案の構成：下から村の入口、中央に2×2程度の土、周囲に広い草原、道具と水桶、少量の草・石・切り株、上に将来の果樹園接続の余地。
+未確定：初期マス数、正式配置、育成時間、作物、報酬、開墾条件、コスト、保存方式。当たり判定・状態切替・マップ接続・公開反映は未実施。
+注意：芽や土を背景に描き込んだ画像なので、ゲーム実装時は変化する区画・作物・障害物を分離する。背景一枚を差し替えるだけで育成可能とは扱わない。
+
+生成プロンプト全文：
+Transform the reference environment into a new neighboring meadow-farm map for the original cozy game Karakuma Island. The reference is the MASTER ART STYLE and camera: match its pale buttery-yellow and sage watercolor leaves, simple smooth warm tree trunks, peach dirt, rounded friendly shapes, soft clear illustrated outlines and quiet storybook feeling. Do NOT retain the house or the wide village road; change the scene into a meadow with a very small beginner vegetable patch.
+
+One continuous landscape 3:2 image, desired 1536x1024, full bleed, designed to be cropped by a portrait-phone camera that follows a walking character. Low oblique near-orthographic 2D game view, front faces of the few objects visible, gentle depth without perspective shrinking. No aerial diagram, no realistic farm, no miniature diorama.
+
+CORE PLAYER IDEA: "A tiny patch in a wide grassy meadow; clear weeds, hoe the earth and slowly expand it." Most of the image, at least 70%, is inviting usable pale-green meadow, NOT prepared farmland. Near the middle, slightly below center, there is ONLY ONE small beginner plot of FOUR square planting spaces arranged 2 by 2, taking at most 8% of the picture. Soft warm brown freshly hoed soil; small and humble, uneven grassy edge, no raised wooden beds. Show only a few tiny young vegetable sprouts in two spaces, one empty hoed space, one slightly darker watered space. These are visual suggestions, not a crop catalog. Don't make multiple large gardens, harvest piles, a finished farm or a big farmyard.
+
+A modest peach dirt approach enters at the BOTTOM CENTER from the village and ends beside this little plot. Keep unobstructed walking room on all sides of the patch. Surrounding grass to left and right must clearly look like land that could later be cleared and tilled: a FEW isolated soft weed tufts, two or three small round rocks, perhaps one small old stump toward a side margin, separated by extensive clear short grass. No dense obstructing flowerbeds around the plot, no fences enclosing expansion land, no steep cliffs, no wall of objects. No visible tile grid on the grass, no locked land, no arrows or purchase symbols.
+Beside the starter plot, place only a small simple watering can and a tiny wooden seed crate with a hand hoe leaning against it, safely at the margin of the walkable approach. No machinery, scarecrow, windmill, barn, greenhouse, livestock, mansion, giant sign, market stall or huge storage shed.
+A small water barrel off to one side is sufficient for the future watering idea; no large river bisecting the meadow. Rounded trees and a few pastel wildflowers frame distant edges while the center stays open. At the upper edge, a quiet small path can continue between two trees toward a future orchard; do not build the orchard yet. Very little sky, no mountain panorama, no vanishing-point road.
+Gentle sunny everyday light, pale yellow-green grass, restrained textures, charming clean watercolor. Absolutely no bark scales/diamonds, no harsh black shadows, no photorealistic blades of grass, no muddy green. Consistent object scale with reference village.
+No character or NPC, no HUD, no text, no numbers, no smartphone frame, no minimap, no dotted lines, no watermark, no comparison panels. The image should immediately read: 'my very small first vegetable patch, with lots of space and possibility around it.'
