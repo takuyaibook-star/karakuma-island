@@ -1,0 +1,2 @@
+export const BACKGROUND_TILES=Array.from({length:6},(_,i)=>{const col=i%3,row=Math.floor(i/3),x=Math.max(0,col*512-1),y=Math.max(0,row*512-1);return {key:`background${col}_${row}`,url:`assets/meadow-${col}-${row}-v1.png`,x,y,w:Math.min(1536,(col+1)*512+1)-x,h:Math.min(1024,(row+1)*512+1)-y};});
+export function visibleBackground(view,width,height){const right=view.x+width/view.scale,bottom=view.y+height/view.scale;return BACKGROUND_TILES.filter(t=>t.x<right&&t.x+t.w>view.x&&t.y<bottom&&t.y+t.h>view.y);}

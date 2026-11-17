@@ -9,3 +9,5 @@ header{gap:6px}.bag{pointer-events:auto;width:38px;height:38px;min-height:38px;f
 .item-icon svg{width:50px;height:50px}
 
 progress{width:220px;height:12px;accent-color:#9cac70}#loading-count{font-size:11px;margin:6px 0}
+
+#equipment{position:absolute;left:12px;bottom:70px;z-index:7;display:flex;flex-direction:column;gap:7px}#equipment button{min-width:64px;padding:8px;font-size:11px}#equipment button[aria-pressed=true]{background:#839b67;color:#fff9e6;border-color:#657d4c}#equipment small{display:block;font-size:9px;margin-top:2px}.tutorial{position:absolute;left:14px;right:14px;top:106px;margin:0;padding:7px 10px;border-radius:12px;background:#fff8e8e6;font-size:11px;text-align:center;pointer-events:none}.walk-hint{display:none}#water-guide{top:158px}.item-card>button{font-size:10px;min-height:32px;padding:3px 12px}.settings button{font-size:11px;margin:8px 0}#message{bottom:max(16px,env(safe-area-inset-bottom));max-width:92%}.inventory-panel{overscroll-behavior:contain}@media(max-height:500px){.tutorial{top:78px;font-size:10px}#equipment{bottom:45px;flex-direction:row}.place small{display:none}#water-guide{top:120px}}
