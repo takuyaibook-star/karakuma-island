@@ -1,0 +1,14 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+node_modules/
+private/
+private-credentials/
+backups/
+*.dump
+*.backup
+*.sql.gz
+*.pem
+*.key
+__pycache__/
