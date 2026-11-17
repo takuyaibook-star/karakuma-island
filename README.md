@@ -2,9 +2,9 @@
 
 淡い水彩・絵本調の世界を自由に歩き、畑でにんじんを育てるスマートフォン向け試作です。
 
-**初期マップ：<https://takuyaibook-star.github.io/karakuma-island/?v=7>**
+**初期マップ：<https://takuyaibook-star.github.io/karakuma-island/?v=8>**
 
-家の右手の畑への道を上へ進むと畑に入ります。畑の下の道を進むと村へ戻ります。直接の畑URLは <https://takuyaibook-star.github.io/karakuma-island/?map=farm&v=7>。マップを移っても同じBGMが流れ続けます。
+家の右手の畑への道を上へ進むと畑に入ります。畑の下の道を進むと村へ戻ります。直接の畑URLは <https://takuyaibook-star.github.io/karakuma-island/?map=farm&v=8>。マップを移っても同じBGMが流れ続けます。
 
 ## 操作・育成
 
@@ -75,3 +75,5 @@ BGMはユーザーが用意したMotionElements音源のゲーム用AAC。Stock 
 インストール済みのPlaywrightとChromeで `node tests/browser-smoke.cjs`。`PLAYWRIGHT_MODULE`と`CHROMIUM_PATH`でインストール済みの場所、`TEST_URL`でローカル確認サーバーを指定できます。確認画像は既定で `/tmp/karakuma-v7-checks` に出力し、GitHubへ保存しません。自動ダウンロードや有料APIの呼び出しはありません。
 
 乾湿・枯れの画面確認は同じ環境変数で `node tests/browser-moisture.cjs`。専用ブラウザ内のテスト保存のみを使用します。保存形式v3へ移行する際は元の文字列を `karakuma-island:farming:v1:backup:before-v3` に残し、既存の成熟作物には最低1時間の猶予を設けます。
+
+耕す/開墾/水やりでは、対象の畑の上でクワやじょうろが浮いて750ms作業します。じょうろを傾けると水滴が土へ落ちます。からくまちゃんは道具を持ったままです。演出で水やクワを追加消費することはありません。
