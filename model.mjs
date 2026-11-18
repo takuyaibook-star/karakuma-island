@@ -1,5 +1,5 @@
 import {movePosition} from './terrain.mjs';
-export const MAP={width:2172,height:724,roadY:500,minX:60,maxX:2112,startX:803,speed:75};
+export const MAP={width:2172,height:724,roadY:500,minX:60,maxX:2112,startX:803,speed:90};
 export function initialState(){return {x:MAP.startX,y:MAP.roadY,cameraX:MAP.startX,cameraY:MAP.roadY,target:null,path:[],distance:0,walkingTime:0,moving:false,direction:1};}
 export const clampX=x=>Math.max(MAP.minX,Math.min(MAP.maxX,x));
 // Background only: ~6% smaller. Character CSS height stays at the original value.
