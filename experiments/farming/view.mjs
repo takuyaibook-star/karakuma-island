@@ -5,11 +5,11 @@ import {BACKGROUND_TILES,visibleBackground} from './background.mjs?v=7';
 if(window.parent===window)location.replace(new URL('../../?map=farm&v=7',location.href).href);
 import {setupMusic} from '../../music.mjs?v=7';
 import {createFarm,act,advanceFarm,refillWater,equip,trialTools,tutorial,soilIsWet,WATER_CAPACITY} from './farm.mjs?v=16';
-import {WORLD,SPAWN,plotRect,plantingPoint,cropPlacement,canWalk,nearestPlot,nextAction,cameraView,SOURCE_SCALE,plotLabelPosition,actionPosition,WATER_SOURCE,nearWater,returningToVillage,routeToWork,PLOT_REACH} from './scene.mjs?v=16';
+import {WORLD,SPAWN,plotRect,plantingPoint,cropPlacement,canWalk,nearestPlot,nextAction,cameraView,SOURCE_SCALE,plotLabelPosition,actionPosition,WATER_SOURCE,nearWater,returningToVillage,routeToWork,PLOT_REACH} from './scene.mjs?v=18';
 import {createEffects,harvestPose,HARVEST_MS} from './effects.mjs';
 import {ownedItems} from './items.mjs?v=7';
 import {readSave,writeSave,SAVE_KEY} from './storage.mjs?v=16';
-const $=s=>document.querySelector(s),canvas=$('#farm'),message=$('#message'),action=$('#action'),summary=$('#harvest-summary'),preview=$('#colorful-preview'),overlay=$('#inventory-overlay');
+const $=s=>document.querySelector(s),canvas=$('#farm'),message=$('#message'),action=$('#action'),wellAction=$('#well-action'),summary=$('#harvest-summary'),preview=$('#colorful-preview'),overlay=$('#inventory-overlay');
 const baseCtx=canvas.getContext('2d');let ctx=baseCtx;const fxCanvas=document.createElement('canvas');fxCanvas.id='plot-fx';fxCanvas.setAttribute('aria-hidden','true');$('.scene').append(fxCanvas);const fxCtx=fxCanvas.getContext('2d');
 let storage=null;try{storage=window.localStorage;}catch{}
 const saved=storage?readSave(storage):{farm:createFarm(),canSave:false,error:'このブラウザでは保存できません。'};
@@ -47,11 +47,23 @@ function updatePlotLabels(){
   tag.style.top=`${position.y}px`;
  });
 }
+function updateWellAction(){
+ const view=camera||cameraView(player,canvas.clientWidth,canvas.clientHeight);
+ const barrel=FARM_PROPS.find(prop=>prop.id==='barrel');
+ const x=(barrel.x-view.x)*view.scale;
+ const top=(barrel.y-barrel.h-view.y)*view.scale-8;
+ wellAction.hidden=!ready||boxOpen||x<0||x>canvas.clientWidth||top<8||top>canvas.clientHeight;
+ wellAction.disabled=Boolean(harvest||tilling||watering);
+ if(wellAction.hidden)return;
+ const inset=wellAction.offsetWidth/2+8;
+ wellAction.style.left=`${Math.max(inset,Math.min(canvas.clientWidth-inset,x))}px`;
+ wellAction.style.top=`${top}px`;
+}
 function updateAction(){
  const t=workTarget();action.hidden=!ready||boxOpen||(!harvest&&(!t||t.waiting));action.disabled=!!harvest||!!tilling||!!watering||!!t?.waiting;
  if(harvest){action.textContent='収穫中…';action.setAttribute('aria-label','収穫中');positionAction();}
  else if(t&&!t.waiting){action.textContent=t.label;action.setAttribute('aria-label',t.type==='well'?t.label:`${t.label}（畑${t.index+1}）`);positionAction();}
- updatePlotLabels();$('#tutorial').textContent=tutorial(farm);renderShortcuts();summary.textContent=`収穫 ${farm.harvests}こ`;$('#water-meter').textContent=`水 ${farm.water}/${WATER_CAPACITY}`;
+ updatePlotLabels();updateWellAction();$('#tutorial').textContent=tutorial(farm);renderShortcuts();summary.textContent=`収穫 ${farm.harvests}こ`;$('#water-meter').textContent=`水 ${farm.water}/${WATER_CAPACITY}`;
  const guide=$('#water-guide');guide.hidden=farm.water>0||boxOpen;
  if(!guide.hidden){const a=Math.atan2(WATER_SOURCE.y-player.y,WATER_SOURCE.x-player.x);$('#water-arrow').style.transform=`rotate(${a}rad)`;}
 }
@@ -64,6 +76,12 @@ function performWork(target=null){
  status(result.message);updateAction();render();
 }
 action.addEventListener('click',()=>performWork());
+wellAction.addEventListener('click',()=>{
+ if(!ready||boxOpen||harvest||tilling||watering)return;
+ cancelWorkRoute();
+ if(farm.water>=WATER_CAPACITY){status('じょうろの水はいっぱいだよ');return;}
+ requestWork({type:'well'});
+});
 $('#reset').addEventListener('click',()=>{if(confirm('畑・持ち物・水の残量を最初に戻しますか？')){harvest=null;halt();farm=createFarm();player={...SPAWN};tilling=null;watering=null;camera=null;preview.checked=false;canSave=!!storage;persist();status('小さな畑を、また少しずつ広げよう');updateAction();render();}});
 function renderInventory(){const list=$('#inventory-list');list.replaceChildren();for(const item of ownedItems(farm.inventory)){const card=document.createElement('div');card.className='item-card';const icon=document.createElement('div');icon.className='item-icon';if(item.id==='carrot_withered'){const img=document.createElement('img');img.src='assets/carrot-withered-v1.png';img.alt='仮デザイン';icon.append(img);}else if(item.crop==='carrot'){const img=document.createElement('img');img.src=item.colorful?'assets/carrot-colorful-v2.png':'assets/carrot-ripe-v2.png';img.alt='';icon.append(img);}else if(item.kind==='tool'){const img=document.createElement('img');img.src={hoe:'assets/item-hoe-v1.png',watering_can:'assets/item-watering-can-v2.png',super_hoe:'assets/item-super-hoe-v1.png'}[item.id];img.alt='';icon.append(img);}else icon.textContent=item.icon||'✧';const name=document.createElement('span');name.textContent=item.name;const quantity=document.createElement('strong');quantity.textContent=item.quantity===null?'∞':`×${item.quantity}`;card.append(icon,name,quantity);if(item.kind==='tool'){const toggle=document.createElement('button');toggle.textContent=farm.equipped===item.id?'しまう':'持つ';toggle.setAttribute('aria-pressed',String(farm.equipped===item.id));toggle.addEventListener('click',()=>{chooseTool(item.id);renderInventory();});card.append(toggle);}list.append(card);}$('#inventory-water').textContent=`水 ${farm.water}/${WATER_CAPACITY}・クワ あと${farm.hoeUses}回`;}
 function openBox(){halt();boxOpen=true;renderInventory();overlay.hidden=false;updateAction();$('#box-close').focus();}
