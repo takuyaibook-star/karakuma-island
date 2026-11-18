@@ -35,9 +35,6 @@ function positionAction(){
 function updatePlotLabels(){
  if(!ready)return;
  const view=camera||cameraView(player,canvas.clientWidth,canvas.clientHeight);
- const bear=bearPose(view);
- const bearLeft=(bear.x-view.x)*view.scale,bearTop=(bear.y-view.y)*view.scale;
- const bearRight=bearLeft+bear.w*view.scale,bearBottom=bearTop+bear.h*view.scale;
  farm.cells.forEach((cell,index)=>{
   const tag=plotTags[index],task=nextAction(cell);
   tag.hidden=boxOpen||!task.waiting;
@@ -48,9 +45,6 @@ function updatePlotLabels(){
   if(tag.hidden)return;
   tag.style.left=`${position.x}px`;
   tag.style.top=`${position.y}px`;
-  const halfWidth=tag.offsetWidth/2;
-  const overlap=position.x+halfWidth>bearLeft&&position.x-halfWidth<bearRight&&position.y+tag.offsetHeight>bearTop&&position.y<bearBottom;
-  tag.classList.toggle('is-covered',overlap);
  });
 }
 function updateAction(){
