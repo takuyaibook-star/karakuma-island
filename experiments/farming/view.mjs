@@ -3,7 +3,7 @@ import {BACKGROUND_TILES,visibleBackground} from './background.mjs?v=7';
 if(window.parent===window)location.replace(new URL('../../?map=farm&v=7',location.href).href);
 import {setupMusic} from '../../music.mjs?v=7';
 import {createFarm,act,advanceFarm,refillWater,equip,trialTools,tutorial,soilIsWet} from './farm.mjs?v=9';
-import {WORLD,SPAWN,plotRect,plantingPoint,cropPlacement,canWalk,nearestPlot,nextAction,route,cameraView,SOURCE_SCALE,plotLabelPosition,actionPosition,WATER_SOURCE,nearWater,returningToVillage} from './scene.mjs?v=10';
+import {WORLD,SPAWN,plotRect,plantingPoint,cropPlacement,canWalk,nearestPlot,nextAction,route,cameraView,SOURCE_SCALE,plotLabelPosition,actionPosition,WATER_SOURCE,nearWater,returningToVillage} from './scene.mjs?v=10a';
 import {createEffects,harvestPose,HARVEST_MS} from './effects.mjs';
 import {ownedItems} from './items.mjs?v=7';
 import {readSave,writeSave,SAVE_KEY} from './storage.mjs?v=7';
