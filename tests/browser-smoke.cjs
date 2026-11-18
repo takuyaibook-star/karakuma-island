@@ -9,7 +9,7 @@ const output=process.env.TEST_OUTPUT||'/tmp/karakuma-v7-checks';fs.mkdirSync(out
  try{
  const context=await browser.newContext({viewport:{width:390,height:844}}),page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.clock.install();
- await page.goto(base+'?map=farm&v=7');let f=page.frameLocator('#map');await f.locator('#loading').waitFor({state:'hidden'});
+ await page.goto(base+'?map=farm&v=10a');let f=page.frameLocator('#map');await f.locator('#loading').waitFor({state:'hidden'});
  await page.screenshot({path:path.join(output,'farm-initial-390.png')});
  assert.equal(await f.locator('#tutorial').textContent(),'左下でクワを持って、畑のそばで耕そう！');
  await f.locator('#equip-hoe').click();await f.locator('#farm').focus();await page.keyboard.down('ArrowUp');await page.waitForTimeout(850);await page.keyboard.up('ArrowUp');
