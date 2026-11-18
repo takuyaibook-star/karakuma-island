@@ -1,11 +1,11 @@
-import {createFarm,advanceFarm,INITIALLY_CLEARED} from './farm.mjs?v=7';
+import {createFarm,advanceFarm,INITIALLY_CLEARED,WATER_CAPACITY} from './farm.mjs?v=16';
 import {createInventory} from './items.mjs?v=7';
 export const SAVE_KEY='karakuma-island:farming:v1';
 export const BACKUP_KEY=SAVE_KEY+':backup:before-v2';
 export const MOISTURE_BACKUP_KEY=SAVE_KEY+':backup:before-v3';
 export function validMoisture(f){return f.cells.every(c=>!c.plant||(typeof c.plant.withered==='boolean'&&(c.plant.drySince===null||(Number.isFinite(c.plant.drySince)&&c.plant.drySince>=0&&c.plant.stage===3))&&(!c.plant.withered||c.plant.drySince!==null)));}
 export function validFarm(f,legacy=false){
- if(!f||!Array.isArray(f.cells)||f.cells.length!==8||!Number.isInteger(f.water)||f.water<0||f.water>3)return false;
+ if(!f||!Array.isArray(f.cells)||f.cells.length!==8||!Number.isInteger(f.water)||f.water<0||f.water>WATER_CAPACITY)return false;
  if(!['nextId','harvests','colorful','value'].every(k=>Number.isSafeInteger(f[k])&&f[k]>=0)||f.nextId<1)return false;
  const keys=Object.keys(createInventory()).filter(k=>!legacy||k!=='super_hoe'&&!k.endsWith('_withered')&&k!=='withered_grass');
  if(!f.inventory||!keys.every(k=>k==='carrot_seed'?f.inventory[k]===null:Number.isSafeInteger(f.inventory[k])&&f.inventory[k]>=0))return false;
