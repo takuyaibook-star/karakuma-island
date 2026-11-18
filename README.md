@@ -2,9 +2,9 @@
 
 淡い水彩・絵本調の世界を自由に歩き、畑でにんじんを育てるスマートフォン向け試作です。
 
-**初期マップ：<https://takuyaibook-star.github.io/karakuma-island/?v=10>**
+**初期マップ：<https://takuyaibook-star.github.io/karakuma-island/?v=10a>**
 
-家の右手の畑への道を上へ進むと畑に入ります。畑の下の道を進むと村へ戻ります。直接の畑URLは <https://takuyaibook-star.github.io/karakuma-island/?map=farm&v=10>。マップを移っても同じBGMが流れ続けます。
+家の右手の畑への道を上へ進むと畑に入ります。畑の下の道を進むと村へ戻ります。直接の畑URLは <https://takuyaibook-star.github.io/karakuma-island/?map=farm&v=10a>。マップを移っても同じBGMが流れ続けます。
 
 ## 操作・育成
 
