@@ -11,7 +11,7 @@ const output=process.env.TEST_OUTPUT||'/tmp/karakuma-v7-checks';fs.mkdirSync(out
  await page.clock.install();
  await page.goto(base+'?map=farm&v=10a');let f=page.frameLocator('#map');await f.locator('#loading').waitFor({state:'hidden'});
  await page.screenshot({path:path.join(output,'farm-initial-390.png')});
- assert.equal(await f.locator('#tutorial').textContent(),'左下でクワを持って、畑のそばで耕そう！');
+ assert.equal(await f.locator('#tutorial').textContent(),'畑のそばで耕そう！');
  await f.locator('#equip-hoe').click();await f.locator('#farm').focus();await page.keyboard.down('ArrowUp');await page.waitForTimeout(850);await page.keyboard.up('ArrowUp');
  await page.clock.pauseAt(new Date(await page.evaluate(()=>Date.now())+1000));await f.locator('#action').filter({hasText:'ここを耕す'}).click();await page.clock.runFor(250);await page.screenshot({path:path.join(output,'farm-floating-hoe-390.png')});assert.equal(await f.locator('#equip-hoe').getAttribute('aria-pressed'),'true');assert.equal(await f.locator('#action').isEnabled(),false);await page.clock.resume();assert.match(await f.locator('#hoe-uses').textContent(),/9回/);await page.waitForTimeout(800);
  await f.locator('.settings summary').click();await f.locator('#colorful-preview').check();await f.locator('.settings summary').click();

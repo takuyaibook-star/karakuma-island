@@ -4,7 +4,21 @@ const equipped=(f,t)=>f.equipped===t?f:equip(f,t);
 const apply=(f,i,tool,extra={})=>act(['hoe','water','clear'].includes(tool)?equipped(f,{hoe:'hoe',water:'watering_can',clear:'super_hoe'}[tool]):f,i,{tool,random:()=>.5,now:1000,...extra});
 function plant(f,i,extra={}){f=apply(f,i,'hoe').farm;return apply(f,i,'seed',extra).farm;}
 test('初期4マスだけ開墾済み。通常クワで未開墾を飛ばせず、すごいクワは隣接1マスごとに消費',()=>{const f=createFarm();assert.deepEqual(f.cells.map(c=>c.cleared),[true,true,false,false,true,true,false,false]);assert.equal(apply(f,0,'seed').changed,false);const a=apply(f,0,'hoe').farm;assert.equal(f.cells[0].tilled,false);assert.equal(apply(a,2,'hoe').changed,false);assert.equal(apply(a,2,'clear').changed,false);let b=trialTools(a);assert.equal(apply(b,3,'clear').changed,false);b=apply(b,2,'clear').farm;assert.equal(b.cells[2].cleared,true);assert.equal(b.cells[2].tilled,false);assert.equal(b.inventory.super_hoe,0);assert.equal(b.equipped,null);assert.equal(apply(b,2,'hoe').changed,true);});
-test('手動装備は排他。未装備で耕作/水やりできず、しまえる',()=>{let f=createFarm();assert.equal(act(f,0,{tool:'hoe'}).changed,false);f=equip(f,'hoe');assert.equal(f.equipped,'hoe');f=equip(f,'watering_can');assert.equal(f.equipped,'watering_can');f=equip(f,'watering_can');assert.equal(f.equipped,null);f=plant(f,0);assert.equal(act(f,0,{tool:'water'}).changed,false);});
+test('持っている道具は装備なしで使える。別の道具を消費しても現在の装備は維持',()=>{
+ const f=equip(createFarm(),'watering_can');
+ const tilled=act({...f,hoeUses:1},0,{tool:'hoe'}).farm;
+ assert.equal(tilled.inventory.hoe,0);
+ assert.equal(tilled.equipped,'watering_can');
+ const seeded=act(tilled,0,{tool:'seed'}).farm;
+ const stowed=equip(seeded,'watering_can');
+ assert.equal(act(stowed,0,{tool:'water'}).farm.water,2);
+ const noCan={...stowed,inventory:{...stowed.inventory,watering_can:0}};
+ assert.equal(act(noCan,0,{tool:'water'}).changed,false);
+ assert.equal(refillWater({...noCan,water:0}).changed,false);
+ const expanded=act(trialTools(seeded),2,{tool:'clear'}).farm;
+ assert.equal(expanded.inventory.super_hoe,0);
+ assert.equal(expanded.equipped,'watering_can');
+});
 test('水やり5秒/芽から2分/芽から5分の境界を維持し、段階別の次の時刻を表示',()=>{let f=plant(createFarm(),0);assert.equal(advanceFarm(f,999999).cells[0].plant.stage,0);f=apply(f,0,'water',{now:0}).farm;assert.equal(f.water,2);for(const [now,expected] of [[4999,0],[5000,1],[124999,1],[125000,2],[304999,2],[305000,3]])assert.equal(advanceFarm(f,now).cells[0].plant.stage,expected);assert.deepEqual(nextGrowth(f.cells[0].plant,0),{label:'芽が出るまで',ms:5000});assert.deepEqual(nextGrowth(advanceFarm(f,5000).cells[0].plant,5000),{label:'育ち中になるまで',ms:120000});assert.deepEqual(nextGrowth(advanceFarm(f,125000).cells[0].plant,125000),{label:'収穫まで',ms:180000});assert.equal(apply(f,0,'grow',{now:5001}).changed,false);const harvested=apply(f,0,'grow',{now:305000}).farm;assert.equal(harvested.inventory.carrot,1);assert.equal(apply(harvested,0,'grow').changed,false);});
 test('カラフルは種まき時に一度だけ抽選して別アイテムへ。時刻を戻しても育ちは巻き戻さない',()=>{let count=0,f=plant(createFarm(),0,{random:()=>{count++;return .0099}});f=apply(f,0,'water').farm;f=advanceFarm(f,1000+CARROT.ripeMs);assert.equal(advanceFarm(f,0).cells[0].plant.stage,3);f=apply(f,0,'grow',{now:1000+CARROT.ripeMs,random:()=>{throw Error('再抽選')}}).farm;assert.equal(count,1);assert.equal(f.inventory.carrot,0);assert.equal(f.inventory.carrot_colorful,1);assert.equal(f.value,30);assert.equal(plant(createFarm(),0,{random:()=>.01}).cells[0].plant.colorful,false);});
 test('3回分の水、重複消費なし、1回で全段階成長。補充で開始時刻を変えない',()=>{let f=createFarm();for(const i of [0,1,4]){f=plant(f,i);f=apply(f,i,'water').farm;assert.equal(apply(f,i,'water').changed,false);}assert.equal(f.water,0);f=plant(f,5);assert.match(apply(f,5,'water').message,/水くみ場/);const before=f;f=refillWater(f).farm;assert.equal(before.water,0);assert.equal(f.water,3);assert.equal(f.cells[0].plant.growthStartedAt,1000);assert.equal(apply(f,5,'water').farm.water,2);});
