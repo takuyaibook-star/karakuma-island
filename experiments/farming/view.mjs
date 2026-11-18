@@ -29,7 +29,7 @@ function updateAction(){
  const t=workTarget();action.hidden=!ready||boxOpen||(!harvest&&!t);action.disabled=!!harvest||!!tilling||!!watering||!!t?.waiting;
  if(harvest){action.textContent='収穫中…';action.setAttribute('aria-label','収穫中');positionAction();}
  else if(t){action.textContent=t.label;action.setAttribute('aria-label',t.type==='well'?t.label:`${t.label}（畑${t.index+1}${t.waiting?'・'+['種','芽','育ち中','収穫可'][farm.cells[t.index].plant.stage]:''}）`);positionAction();}
- updatePlotLabels(t);fadeOverlappingLabels();$('#tutorial').textContent=tutorial(farm);renderShortcuts();summary.textContent=`収穫 ${farm.harvests}こ`;$('#water-meter').textContent=`水 ${farm.water}/3`;
+ updatePlotLabels(t);positionOverlappingLabels();$('#tutorial').textContent=tutorial(farm);renderShortcuts();summary.textContent=`収穫 ${farm.harvests}こ`;$('#water-meter').textContent=`水 ${farm.water}/3`;
  const guide=$('#water-guide');guide.hidden=farm.water>0||boxOpen;
  if(!guide.hidden){const a=Math.atan2(WATER_SOURCE.y-player.y,WATER_SOURCE.x-player.x);$('#water-arrow').style.transform=`rotate(${a}rad)`;}
 }
@@ -73,23 +73,38 @@ function drawBear(){
  ctx.fillStyle='#72503030';ctx.beginPath();ctx.ellipse(player.x,player.y,p.w*.3,6,0,0,Math.PI*2);ctx.fill();
  ctx.drawImage(p.image,b.x,b.y,b.w,b.h,p.x,p.y,p.w,p.h);
 }
-function fadeOverlappingLabels(){
+function positionOverlappingLabels(){
  if(!ready)return;
  const view=camera||cameraView(player,canvas.clientWidth,canvas.clientHeight);
  const field=canvas.getBoundingClientRect();
- const blockers=[bearPose(view)];
- for(const p of FARM_PROPS){
-  if(images[p.image])blockers.push({x:p.x-p.w/2,y:p.y-p.h,w:p.w,h:p.h});
- }
- const rectangles=blockers.map(p=>{
+ const toScreen=p=>{
   const left=field.left+(p.x-view.x)*view.scale,top=field.top+(p.y-view.y)*view.scale;
   return {left,top,right:left+p.w*view.scale,bottom:top+p.h*view.scale};
- });
+ };
+ const bear=toScreen(bearPose(view));
+ const props=FARM_PROPS.filter(p=>images[p.image])
+  .map(p=>toScreen({x:p.x-p.w/2,y:p.y-p.h,w:p.w,h:p.h}));
+ const intersects=(a,b)=>a.right>b.left&&a.left<b.right&&a.bottom>b.top&&a.top<b.bottom;
  for(const label of [action,...plotTags]){
   if(label.hidden)continue;
   const rect=label.getBoundingClientRect();
-  const overlaps=rectangles.some(p=>rect.right>p.left&&rect.left<p.right&&rect.bottom>p.top&&rect.top<p.bottom);
-  label.classList.toggle('overlaps-scene-object',overlaps);
+  const overlapsBear=intersects(rect,bear);
+  label.classList.toggle('overlaps-scene-object',!overlapsBear&&props.some(p=>intersects(p,rect)));
+  if(!overlapsBear)continue;
+
+  // Positions were reset to their plot anchors earlier in this update.
+  const anchor=label===action?label.parentElement:label;
+  const gap=8;
+  const above=bear.top-rect.height-gap;
+  const left=bear.left-rect.width-gap,right=bear.right+gap;
+  if(above>=$('#tutorial').getBoundingClientRect().bottom+gap){
+   anchor.style.top=`${parseFloat(anchor.style.top)+above-rect.top}px`;
+  }else if(right+rect.width<=field.right-gap||left>=field.left+gap){
+   const side=right+rect.width<=field.right-gap?right:left;
+   anchor.style.left=`${parseFloat(anchor.style.left)+side-rect.left}px`;
+  }else{
+   anchor.style.top=`${parseFloat(anchor.style.top)+Math.max(field.top+gap,above)-rect.top}px`;
+  }
  }
 }
 // Floating action tools use the adopted item art. The equipped character remains unchanged.
