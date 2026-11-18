@@ -25,7 +25,7 @@ export function canWalk(p){
 export function nearestPlot(p){let index=null,best=Infinity;for(let i=0;i<8;i++){const c=plantingPoint(i),d=Math.hypot(c.x-p.x,c.y-p.y);if(d<best){best=d;index=i;}}return best<=133?index:null;}
 export function nextAction(cell,now=Date.now()){if(cell.cleared===false)return {tool:'clear',label:'すごいクワで開墾'};if(!cell.tilled)return {tool:'hoe',label:'ここを耕す'};if(!cell.plant)return {tool:'seed',label:'たねをまく'};if(cell.plant.withered)return {tool:'remove',label:'枯れた野菜を片づける'};if(cell.plant.stage===3)return {tool:'grow',label:'収穫する'};if(!cell.plant.watered)return {tool:'water',label:'みずをまく'};const phase=nextGrowth(cell.plant,now);return {tool:null,label:phase?`あと${formatRemaining(phase.ms)}`:'育つのを待とう',waiting:true};}
 export function returningToVillage(p){return p.y>=965&&p.x>=610&&p.x<=850;}
-function clear(a,b){const n=Math.max(1,Math.ceil(Math.hypot(b.x-a.x,b.y-a.y)/8));for(let i=0;i<=n;i++)if(!canWalk({x:a.x+(b.x-a.x)*i/n,y:a.y+(b.y-a.y)*i/n}))return false;return true;}
+function clear(a,b){const n=Math.max(1,Math.ceil(Math.hypot(b.x-a.x,b.y-a.y)/1));for(let i=0;i<=n;i++)if(!canWalk({x:a.x+(b.x-a.x)*i/n,y:a.y+(b.y-a.y)*i/n}))return false;return true;}
 export function route(from,to){
  if(!canWalk(from)||!canWalk(to))return [];if(clear(from,to))return [to];
  const step=22,cols=70,rows=46,id=(x,y)=>y*cols+x,pos=n=>({x:(n%cols)*step,y:Math.floor(n/cols)*step});
