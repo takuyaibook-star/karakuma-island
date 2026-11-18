@@ -1,4 +1,6 @@
 import {scaleFor,characterHeight} from '../../model.mjs';
+import {propBlocks} from './props.mjs?v=9';
+export {WATER_SOURCE,nearWater} from './props.mjs?v=9';
 import {COLS,nextGrowth,formatRemaining} from './farm.mjs?v=7';
 // Source art uses larger pixels than the existing world; normalize it before applying the shared camera.
 export const SOURCE_SCALE=.65;
@@ -13,17 +15,15 @@ export const CARROT_FRAMES=[
  {x:0,y:685,w:229,h:230,anchorX:118,anchorY:909,scale:.75}
 ];
 export function cropPlacement(i,stage){const s=CARROT_FRAMES[stage-1],p=plantingPoint(i);return {...s,dx:p.x-(s.anchorX-s.x)*s.scale,dy:p.y-(s.anchorY-s.y)*s.scale,dw:s.w*s.scale,dh:s.h*s.scale,ground:p};}
-const props=[{x:266,y:492,rx:78,ry:86},{x:411,y:559,rx:49,ry:30},{x:349,y:796,rx:80,ry:43},{x:195,y:778,rx:75,ry:34},{x:1395,y:418,rx:99,ry:40},{x:101,y:369,rx:62,ry:35}];
+const props=[{x:195,y:778,rx:75,ry:34},{x:1395,y:418,rx:99,ry:40},{x:101,y:369,rx:62,ry:35}];
 export function canWalk(p){
  if(p.x<65||p.x>1470||p.y<270||p.y>980)return false;
  // Reserve each two-column bed as a whole, including future plots. The 90px aisle is never cultivated.
  for(let pair=0;pair<2;pair++){const r=plotRect(pair*2);if(p.x>r.x-14&&p.x<r.x+r.w*2+14&&p.y>r.y-12&&p.y<r.y+r.h*2+12)return false;}
- return !props.some(o=>((p.x-o.x)/o.rx)**2+((p.y-o.y)/o.ry)**2<1);
+ return !propBlocks(p)&&!props.some(o=>((p.x-o.x)/o.rx)**2+((p.y-o.y)/o.ry)**2<1);
 }
 export function nearestPlot(p){let index=null,best=Infinity;for(let i=0;i<8;i++){const c=plantingPoint(i),d=Math.hypot(c.x-p.x,c.y-p.y);if(d<best){best=d;index=i;}}return best<=133?index:null;}
-export const WATER_SOURCE={x:266,y:527};
-export function nearWater(p){return Math.hypot(p.x-WATER_SOURCE.x,p.y-WATER_SOURCE.y)<=145;}
-export function nextAction(cell,now=Date.now()){if(cell.cleared===false)return {tool:'clear',label:'すごいクワで開墾'};if(!cell.tilled)return {tool:'hoe',label:'ここを耕す'};if(!cell.plant)return {tool:'seed',label:'たねをまく'};if(cell.plant.withered)return {tool:'remove',label:'枯れた野菜を片づける'};if(cell.plant.stage===3)return {tool:'grow',label:'収穫する'};if(!cell.plant.watered)return {tool:'water',label:'みずをまく'};const phase=nextGrowth(cell.plant,now);return {tool:null,label:phase?`${phase.label} あと${formatRemaining(phase.ms)}`:'育つのを待とう',waiting:true};}
+export function nextAction(cell,now=Date.now()){if(cell.cleared===false)return {tool:'clear',label:'すごいクワで開墾'};if(!cell.tilled)return {tool:'hoe',label:'ここを耕す'};if(!cell.plant)return {tool:'seed',label:'たねをまく'};if(cell.plant.withered)return {tool:'remove',label:'枯れた野菜を片づける'};if(cell.plant.stage===3)return {tool:'grow',label:'収穫する'};if(!cell.plant.watered)return {tool:'water',label:'みずをまく'};const phase=nextGrowth(cell.plant,now);return {tool:null,label:phase?`あと${formatRemaining(phase.ms)}`:'育つのを待とう',waiting:true};}
 export function returningToVillage(p){return p.y>=965&&p.x>=610&&p.x<=850;}
 function clear(a,b){const n=Math.max(1,Math.ceil(Math.hypot(b.x-a.x,b.y-a.y)/8));for(let i=0;i<=n;i++)if(!canWalk({x:a.x+(b.x-a.x)*i/n,y:a.y+(b.y-a.y)*i/n}))return false;return true;}
 export function route(from,to){
@@ -37,3 +37,6 @@ export function route(from,to){
 
 export function cameraView(player,width,height){const scale=Math.max(scaleFor(width,height)*SOURCE_SCALE,width/WORLD.width,height/WORLD.height);return {scale,x:Math.max(0,Math.min(WORLD.width-width/scale,player.x-width/scale/2)),y:Math.max(0,Math.min(WORLD.height-height/scale,player.y-height*.7/scale)),characterPixels:characterHeight(width,height)};}
 export function actionPosition(player,view,width,height,buttonWidth=150,buttonHeight=54){const margin=12;return {x:Math.max(buttonWidth/2+margin,Math.min(width-buttonWidth/2-margin,(player.x-view.x)*view.scale)),y:Math.max(margin,Math.min(height-buttonHeight-16,(player.y-view.y)*view.scale+16))};}
+
+// Label bottom stays just above the crop artwork; character position never anchors it.
+export function plotLabelPosition(index,plant,view,width,height,buttonWidth=100,buttonHeight=30){const p=plantingPoint(index);let top=plotRect(index).y;if(plant?.stage>0)top=plant.stage<3?cropPlacement(index,plant.stage).dy:p.y-(plant.withered?132:174)*.62;const rawX=(p.x-view.x)*view.scale,rawY=(top-view.y)*view.scale-buttonHeight-7;return {visible:rawX>=0&&rawX<=width&&rawY>=(height<500?86:148)&&rawY<height-buttonHeight-18,x:Math.max(buttonWidth/2+8,Math.min(width-buttonWidth/2-8,(p.x-view.x)*view.scale)),y:Math.max(height<500?86:148,Math.min(height-buttonHeight-18,(top-view.y)*view.scale-buttonHeight-7))};}

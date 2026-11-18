@@ -60,5 +60,5 @@ export function act(original,index,{tool='hoe',random=Math.random,colorfulPrevie
   if(farm.water<=0)return no('水くみ場に行って水をくもう！');
   const next=copy();next.water--;next.cells[index].plant={...plant,watered:true,growthStartedAt:now,drySince:null,withered:false};return {farm:next,changed:true,message:'じょろじょろ… 5秒で芽が出るよ'};
  }
- const phase=nextGrowth(plant,now);return no(plant.stage===3?'収穫できるよ':phase?`${phase.label} あと${formatRemaining(phase.ms)}`:'水をまこう');
+ const phase=nextGrowth(plant,now);return no(plant.stage===3?'収穫できるよ':phase?`あと${formatRemaining(phase.ms)}`:'水をまこう');
 }
