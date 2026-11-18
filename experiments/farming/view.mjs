@@ -1,40 +1,68 @@
+import {MAP} from '../../model.mjs?v=16';
 import {confirmNearbyAction} from '../../nearby-action.mjs?v=12';
 import {FARM_PROPS,GROUND_PATCHES,propAssetsForView,depthLayers} from './props.mjs?v=10';
 import {BACKGROUND_TILES,visibleBackground} from './background.mjs?v=7';
 if(window.parent===window)location.replace(new URL('../../?map=farm&v=7',location.href).href);
 import {setupMusic} from '../../music.mjs?v=7';
-import {createFarm,act,advanceFarm,refillWater,equip,trialTools,tutorial,soilIsWet} from './farm.mjs?v=12';
-import {WORLD,SPAWN,plotRect,plantingPoint,cropPlacement,canWalk,nearestPlot,nextAction,cameraView,SOURCE_SCALE,plotLabelPosition,actionPosition,WATER_SOURCE,nearWater,returningToVillage} from './scene.mjs?v=10a';
+import {createFarm,act,advanceFarm,refillWater,equip,trialTools,tutorial,soilIsWet,WATER_CAPACITY} from './farm.mjs?v=16';
+import {WORLD,SPAWN,plotRect,plantingPoint,cropPlacement,canWalk,nearestPlot,nextAction,cameraView,SOURCE_SCALE,plotLabelPosition,actionPosition,WATER_SOURCE,nearWater,returningToVillage,routeToWork,PLOT_REACH} from './scene.mjs?v=16';
 import {createEffects,harvestPose,HARVEST_MS} from './effects.mjs';
 import {ownedItems} from './items.mjs?v=7';
-import {readSave,writeSave,SAVE_KEY} from './storage.mjs?v=7';
+import {readSave,writeSave,SAVE_KEY} from './storage.mjs?v=16';
 const $=s=>document.querySelector(s),canvas=$('#farm'),message=$('#message'),action=$('#action'),summary=$('#harvest-summary'),preview=$('#colorful-preview'),overlay=$('#inventory-overlay');
 const baseCtx=canvas.getContext('2d');let ctx=baseCtx;const fxCanvas=document.createElement('canvas');fxCanvas.id='plot-fx';fxCanvas.setAttribute('aria-hidden','true');$('.scene').append(fxCanvas);const fxCtx=fxCanvas.getContext('2d');
 let storage=null;try{storage=window.localStorage;}catch{}
 const saved=storage?readSave(storage):{farm:createFarm(),canSave:false,error:'このブラウザでは保存できません。'};
-let farm=saved.farm,canSave=saved.canSave,player={...SPAWN},path=[],ready=false,images,camera=null,last=0,walking=false,gesture=null,harvest=null,boxOpen=false,tilling=null,watering=null,pouringUntil=0,transitioning=false,lastClock=0;
+let farm=saved.farm,canSave=saved.canSave,player={...SPAWN},path=[],pendingWork=null,ready=false,images,camera=null,last=0,walking=false,gesture=null,harvest=null,boxOpen=false,tilling=null,watering=null,pouringUntil=0,transitioning=false,lastClock=0;
 let bearBounds,equipmentRequest=0;const characterBounds=new Map();const sprites=[],keys=new Set(),effects=createEffects(()=>$('#sfx-enabled').checked),stick=$('#stick'),knob=$('#knob');
 function status(text){message.textContent=text;}
 function persist(){if(canSave&&storage&&!writeSave(storage,farm)){canSave=false;status('保存できませんでした。空き容量やブラウザの設定を確認してください。');}}
 function releaseStick(){gesture=null;stick.classList.remove('active');knob.style.transform='translate(0px,0px)';}
-function halt(){keys.clear();releaseStick();path=[];walking=false;}
+function cancelWorkRoute(){path=[];pendingWork=null;}
+function halt(){keys.clear();releaseStick();cancelWorkRoute();walking=false;}
 function viewport(){document.documentElement.style.setProperty('--game-height',`${window.visualViewport?.height||window.innerHeight}px`);camera=null;render();if(ready)updateAction();}
 window.visualViewport?.addEventListener('resize',viewport);window.addEventListener('resize',viewport);
 setupMusic($('#bgm'),$('#music'),status,()=>canvas.focus());
-function workTarget(){if(farm.water<3&&nearWater(player))return {type:'well',tool:'refill',label:'水をくむ'};const i=nearestPlot(player);return i===null?null:{type:'plot',index:i,...nextAction(farm.cells[i])};}
+function workTarget(){if(farm.water<WATER_CAPACITY&&nearWater(player))return {type:'well',tool:'refill',label:'水をくむ'};const i=nearestPlot(player);return i===null?null:{type:'plot',index:i,...nextAction(farm.cells[i])};}
 const plotLabels=document.createElement('div');plotLabels.id='plot-labels';$('.controls').append(plotLabels);const plotTags=farm.cells.map((_,i)=>{const tag=document.createElement('span');tag.className='plot-tag';tag.dataset.plot=String(i);plotLabels.append(tag);return tag;});
-function positionAction(){const v=camera||cameraView(player,canvas.clientWidth,canvas.clientHeight),t=workTarget(),index=harvest?.index??(t?.type==='plot'?t.index:null),w=action.offsetWidth||108,h=action.offsetHeight||44;const p=index===null?{x:(WATER_SOURCE.x-v.x)*v.scale,y:Math.max(148,(FARM_PROPS[0].y-FARM_PROPS[0].h-v.y)*v.scale-h-7)}:plotLabelPosition(index,farm.cells[index].plant,v,canvas.clientWidth,canvas.clientHeight,w,h);$('.action-row').style.left=`${p.x}px`;$('.action-row').style.top=`${p.y}px`;action.dataset.plot=index===null?'':String(index);}
-function updatePlotLabels(t){if(!ready)return;const v=camera||cameraView(player,canvas.clientWidth,canvas.clientHeight);farm.cells.forEach((c,i)=>{const tag=plotTags[i],p=plantingPoint(i),visible=(p.x-v.x)*v.scale>-40&&(p.x-v.x)*v.scale<canvas.clientWidth+40&&(p.y-v.y)*v.scale>0&&(p.y-v.y)*v.scale<canvas.clientHeight+180;tag.hidden=boxOpen||!c.plant||!visible||(t?.type==='plot'&&t.index===i)||harvest?.index===i;if(tag.hidden)return;const a=nextAction(c);if(!a.waiting){tag.hidden=true;return;}tag.textContent=a.label;tag.setAttribute('aria-label',`${a.label}（畑${i+1}）`);const pos=plotLabelPosition(i,c.plant,v,canvas.clientWidth,canvas.clientHeight,100,26);tag.hidden=!pos.visible;tag.style.left=`${pos.x}px`;tag.style.top=`${pos.y}px`;});}
+function positionAction(){
+ const view=camera||cameraView(player,canvas.clientWidth,canvas.clientHeight);
+ const position=actionPosition(player,view,canvas.clientWidth,canvas.clientHeight,action.offsetWidth||108,action.offsetHeight||44);
+ const row=action.parentElement;
+ row.style.left=`${position.x}px`;
+ row.style.top=`${position.y}px`;
+}
+function updatePlotLabels(){
+ if(!ready)return;
+ const view=camera||cameraView(player,canvas.clientWidth,canvas.clientHeight);
+ const bear=bearPose(view);
+ const bearLeft=(bear.x-view.x)*view.scale,bearTop=(bear.y-view.y)*view.scale;
+ const bearRight=bearLeft+bear.w*view.scale,bearBottom=bearTop+bear.h*view.scale;
+ farm.cells.forEach((cell,index)=>{
+  const tag=plotTags[index],task=nextAction(cell);
+  tag.hidden=boxOpen||!task.waiting;
+  if(tag.hidden)return;
+  tag.textContent=task.label;
+  const position=plotLabelPosition(index,{stage:3},view,canvas.clientWidth,canvas.clientHeight,tag.offsetWidth,tag.offsetHeight);
+  tag.hidden=!position.visible;
+  if(tag.hidden)return;
+  tag.style.left=`${position.x}px`;
+  tag.style.top=`${position.y}px`;
+  const halfWidth=tag.offsetWidth/2;
+  const overlap=position.x+halfWidth>bearLeft&&position.x-halfWidth<bearRight&&position.y+tag.offsetHeight>bearTop&&position.y<bearBottom;
+  tag.classList.toggle('is-covered',overlap);
+ });
+}
 function updateAction(){
- const t=workTarget();action.hidden=!ready||boxOpen||(!harvest&&!t);action.disabled=!!harvest||!!tilling||!!watering||!!t?.waiting;
+ const t=workTarget();action.hidden=!ready||boxOpen||(!harvest&&(!t||t.waiting));action.disabled=!!harvest||!!tilling||!!watering||!!t?.waiting;
  if(harvest){action.textContent='収穫中…';action.setAttribute('aria-label','収穫中');positionAction();}
- else if(t){action.textContent=t.label;action.setAttribute('aria-label',t.type==='well'?t.label:`${t.label}（畑${t.index+1}${t.waiting?'・'+['種','芽','育ち中','収穫可'][farm.cells[t.index].plant.stage]:''}）`);positionAction();}
- updatePlotLabels(t);positionOverlappingLabels();$('#tutorial').textContent=tutorial(farm);renderShortcuts();summary.textContent=`収穫 ${farm.harvests}こ`;$('#water-meter').textContent=`水 ${farm.water}/3`;
+ else if(t&&!t.waiting){action.textContent=t.label;action.setAttribute('aria-label',t.type==='well'?t.label:`${t.label}（畑${t.index+1}）`);positionAction();}
+ updatePlotLabels();$('#tutorial').textContent=tutorial(farm);renderShortcuts();summary.textContent=`収穫 ${farm.harvests}こ`;$('#water-meter').textContent=`水 ${farm.water}/${WATER_CAPACITY}`;
  const guide=$('#water-guide');guide.hidden=farm.water>0||boxOpen;
  if(!guide.hidden){const a=Math.atan2(WATER_SOURCE.y-player.y,WATER_SOURCE.x-player.x);$('#water-arrow').style.transform=`rotate(${a}rad)`;}
 }
 function performWork(target=null){
- if(!ready||harvest||tilling||watering||boxOpen)return;farm=advanceFarm(farm);const t=target?.type==='plot'?{...target,...nextAction(farm.cells[target.index])}:target?.type==='well'?(nearWater(player)&&farm.water<3?{type:'well',tool:'refill'}:null):workTarget();if(!t||t.waiting)return;if(t.type==='plot'){const point=plantingPoint(t.index);if(Math.hypot(point.x-player.x,point.y-player.y)>133){status('畑のそばまで歩いてから作業しよう');return;}}halt();
+ if(!ready||harvest||tilling||watering||boxOpen)return;farm=advanceFarm(farm);const t=target?.type==='plot'?{...target,...nextAction(farm.cells[target.index])}:target?.type==='well'?(nearWater(player)&&farm.water<WATER_CAPACITY?{type:'well',tool:'refill'}:null):workTarget();if(!t||t.waiting)return;if(t.type==='plot'){const point=plantingPoint(t.index);if(Math.hypot(point.x-player.x,point.y-player.y)>PLOT_REACH){status('畑のそばまで歩いてから作業しよう');return;}}halt();
  if(t.type==='well'){const result=refillWater(farm);farm=result.farm;if(result.changed)holdWateringCan();effects.play('water');status(result.message);persist();updateAction();render();return;}
  const result=act(farm,t.index,{tool:t.tool,colorfulPreview:preview.checked});
  if(result.harvested){const h=cameraView(player,canvas.clientWidth,canvas.clientHeight).characterPixels/camera.scale;harvest={index:t.index,result,start:performance.now(),from:plantingPoint(t.index),to:{x:player.x,y:player.y-h*.55}};effects.play('harvest');status('すぽんっ！');updateAction();render();return;}
@@ -43,7 +71,7 @@ function performWork(target=null){
 }
 action.addEventListener('click',()=>performWork());
 $('#reset').addEventListener('click',()=>{if(confirm('畑・持ち物・水の残量を最初に戻しますか？')){harvest=null;halt();farm=createFarm();player={...SPAWN};tilling=null;watering=null;camera=null;preview.checked=false;canSave=!!storage;persist();status('小さな畑を、また少しずつ広げよう');updateAction();render();}});
-function renderInventory(){const list=$('#inventory-list');list.replaceChildren();for(const item of ownedItems(farm.inventory)){const card=document.createElement('div');card.className='item-card';const icon=document.createElement('div');icon.className='item-icon';if(item.id==='carrot_withered'){const img=document.createElement('img');img.src='assets/carrot-withered-v1.png';img.alt='仮デザイン';icon.append(img);}else if(item.crop==='carrot'){const img=document.createElement('img');img.src=item.colorful?'assets/carrot-colorful-v2.png':'assets/carrot-ripe-v2.png';img.alt='';icon.append(img);}else if(item.kind==='tool'){const img=document.createElement('img');img.src={hoe:'assets/item-hoe-v1.png',watering_can:'assets/item-watering-can-v2.png',super_hoe:'assets/item-super-hoe-v1.png'}[item.id];img.alt='';icon.append(img);}else icon.textContent=item.icon||'✧';const name=document.createElement('span');name.textContent=item.name;const quantity=document.createElement('strong');quantity.textContent=item.quantity===null?'∞':`×${item.quantity}`;card.append(icon,name,quantity);if(item.kind==='tool'){const toggle=document.createElement('button');toggle.textContent=farm.equipped===item.id?'しまう':'持つ';toggle.setAttribute('aria-pressed',String(farm.equipped===item.id));toggle.addEventListener('click',()=>{chooseTool(item.id);renderInventory();});card.append(toggle);}list.append(card);}$('#inventory-water').textContent=`水 ${farm.water}/3・クワ あと${farm.hoeUses}回`;}
+function renderInventory(){const list=$('#inventory-list');list.replaceChildren();for(const item of ownedItems(farm.inventory)){const card=document.createElement('div');card.className='item-card';const icon=document.createElement('div');icon.className='item-icon';if(item.id==='carrot_withered'){const img=document.createElement('img');img.src='assets/carrot-withered-v1.png';img.alt='仮デザイン';icon.append(img);}else if(item.crop==='carrot'){const img=document.createElement('img');img.src=item.colorful?'assets/carrot-colorful-v2.png':'assets/carrot-ripe-v2.png';img.alt='';icon.append(img);}else if(item.kind==='tool'){const img=document.createElement('img');img.src={hoe:'assets/item-hoe-v1.png',watering_can:'assets/item-watering-can-v2.png',super_hoe:'assets/item-super-hoe-v1.png'}[item.id];img.alt='';icon.append(img);}else icon.textContent=item.icon||'✧';const name=document.createElement('span');name.textContent=item.name;const quantity=document.createElement('strong');quantity.textContent=item.quantity===null?'∞':`×${item.quantity}`;card.append(icon,name,quantity);if(item.kind==='tool'){const toggle=document.createElement('button');toggle.textContent=farm.equipped===item.id?'しまう':'持つ';toggle.setAttribute('aria-pressed',String(farm.equipped===item.id));toggle.addEventListener('click',()=>{chooseTool(item.id);renderInventory();});card.append(toggle);}list.append(card);}$('#inventory-water').textContent=`水 ${farm.water}/${WATER_CAPACITY}・クワ あと${farm.hoeUses}回`;}
 function openBox(){halt();boxOpen=true;renderInventory();overlay.hidden=false;updateAction();$('#box-close').focus();}
 function closeBox(){boxOpen=false;overlay.hidden=true;updateAction();canvas.focus();}
 $('#bag').addEventListener('click',openBox);$('#box-close').addEventListener('click',closeBox);overlay.addEventListener('click',e=>{if(e.target===overlay)closeBox();});
@@ -72,36 +100,6 @@ function drawBear(){
  const p=bearPose(camera),b=p.source;
  ctx.fillStyle='#72503030';ctx.beginPath();ctx.ellipse(player.x,player.y,p.w*.3,6,0,0,Math.PI*2);ctx.fill();
  ctx.drawImage(p.image,b.x,b.y,b.w,b.h,p.x,p.y,p.w,p.h);
-}
-function positionOverlappingLabels(){
- if(!ready)return;
- const view=camera||cameraView(player,canvas.clientWidth,canvas.clientHeight);
- const field=canvas.getBoundingClientRect();
- const toScreen=p=>{
-  const left=field.left+(p.x-view.x)*view.scale,top=field.top+(p.y-view.y)*view.scale;
-  return {left,top,right:left+p.w*view.scale,bottom:top+p.h*view.scale};
- };
- const bear=toScreen(bearPose(view));
- const intersects=(a,b)=>a.right>b.left&&a.left<b.right&&a.bottom>b.top&&a.top<b.bottom;
- for(const label of [action,...plotTags]){
-  if(label.hidden)continue;
-  const rect=label.getBoundingClientRect();
-  if(!intersects(rect,bear))continue;
-
-  // Positions were reset to their plot anchors earlier in this update.
-  const anchor=label===action?label.parentElement:label;
-  const gap=8;
-  const above=bear.top-rect.height-gap;
-  const left=bear.left-rect.width-gap,right=bear.right+gap;
-  if(above>=$('#tutorial').getBoundingClientRect().bottom+gap){
-   anchor.style.top=`${parseFloat(anchor.style.top)+above-rect.top}px`;
-  }else if(right+rect.width<=field.right-gap||left>=field.left+gap){
-   const side=right+rect.width<=field.right-gap?right:left;
-   anchor.style.left=`${parseFloat(anchor.style.left)+side-rect.left}px`;
-  }else{
-   anchor.style.top=`${parseFloat(anchor.style.top)+Math.max(field.top+gap,above)-rect.top}px`;
-  }
- }
 }
 // Floating action tools use the adopted item art. The equipped character remains unchanged.
 function drawToolImage(image,x,y,w,h,angle){if(!image)return false;let b=characterBounds.get(image);if(!b){b=bounds(image);characterBounds.set(image,b);}ctx.save();ctx.translate(x,y);ctx.rotate(angle);ctx.drawImage(image,b.x,b.y,b.w,b.h,-w/2,-h/2,w,h);ctx.restore();return true;}
@@ -141,23 +139,90 @@ function render(){
  farm.cells.forEach((c,i)=>{if(c.plant?.stage===3&&!c.plant.withered&&c.plant.colorful&&harvest?.index!==i)sparkles(i,performance.now());});
  if(harvest){const pose=harvestPose(harvest.from,harvest.to,performance.now()-harvest.start),p=farm.cells[harvest.index].plant,{s,placement:q}=plantSprite(p,harvest.index);ctx.save();if(performance.now()-harvest.start<HARVEST_MS*.7){ctx.beginPath();ctx.rect(0,0,WORLD.width,harvest.from.y+5);ctx.clip();}ctx.translate(pose.x,pose.y);ctx.rotate(pose.tilt);ctx.scale(pose.scale,pose.scale);ctx.globalAlpha=pose.alpha;ctx.drawImage(s.layer,q.dx-harvest.from.x,q.dy-harvest.from.y,q.dw,q.dh);ctx.restore();}
 }
-function move(dx,dy,dt){const length=Math.hypot(dx,dy);if(!length)return false;const step=75/SOURCE_SCALE*dt*Math.min(1,length),x=dx/length*step,y=dy/length*step;if(!sceneryReady({x:player.x+x,y:player.y+y}))return false;let changed=false;if(canWalk({x:player.x+x,y:player.y})){player.x+=x;changed=true;}if(canWalk({x:player.x,y:player.y+y})){player.y+=y;changed=true;}return changed;}
+function move(dx,dy,dt){const length=Math.hypot(dx,dy);if(!length)return false;const step=MAP.speed/SOURCE_SCALE*dt*Math.min(1,length),x=dx/length*step,y=dy/length*step;if(!sceneryReady({x:player.x+x,y:player.y+y}))return false;let changed=false;if(canWalk({x:player.x+x,y:player.y})){player.x+=x;changed=true;}if(canWalk({x:player.x,y:player.y+y})){player.y+=y;changed=true;}return changed;}
 function returnVillage(){if(transitioning)return;transitioning=true;if(farm.equipped==='watering_can')farm=equip(farm,null);persist();halt();if(window.parent!==window&&window.parent.__islandNavigate)window.parent.__islandNavigate('village');else location.assign(new URL('../../?from=farm&v=7',location.href).href);}
 function tick(time){
  if(transitioning)return;const dt=Math.min(.04,(time-last)/1000||0);last=time;
  if(time-lastClock>=200){lastClock=time;const next=advanceFarm(farm);if(next!==farm){const justWithered=next.cells.some((c,i)=>c.plant?.withered&&!farm.cells[i].plant?.withered);farm=next;persist();if(justWithered)status('にんじんが枯れたよ。近づいて片づけよう');render();}updateAction();}
  if(watering){walking=false;if(time-watering.start>=750){watering=null;updateAction();}render();requestAnimationFrame(tick);return;}if(tilling){walking=false;if(time-tilling.start>=750){tilling=null;updateAction();}render();requestAnimationFrame(tick);return;}if(harvest){walking=false;if(time-harvest.start>=HARVEST_MS){farm=harvest.result.farm;const text=harvest.result.message;harvest=null;persist();status(text);updateAction();if(boxOpen)renderInventory();}render();requestAnimationFrame(tick);return;}
- let dx=0,dy=0;for(const key of keys){if(['ArrowLeft','a'].includes(key))dx--;if(['ArrowRight','d'].includes(key))dx++;if(['ArrowUp','w'].includes(key))dy--;if(['ArrowDown','s'].includes(key))dy++;}if(gesture?.drag){dx=gesture.dx;dy=gesture.dy;}let moved=false;if(!boxOpen){if(dx||dy){path=[];moved=move(dx,dy,dt);}else if(path.length){const target=path[0],d=Math.hypot(target.x-player.x,target.y-player.y);if(d<5)path.shift();else moved=move((target.x-player.x)/Math.max(d,75/SOURCE_SCALE*dt),(target.y-player.y)/Math.max(d,75/SOURCE_SCALE*dt),dt);}}
+ let dx=0,dy=0;for(const key of keys){if(['ArrowLeft','a'].includes(key))dx--;if(['ArrowRight','d'].includes(key))dx++;if(['ArrowUp','w'].includes(key))dy--;if(['ArrowDown','s'].includes(key))dy++;}if(gesture?.drag){dx=gesture.dx;dy=gesture.dy;}let moved=false;
+ if(!boxOpen){
+  if(dx||dy){cancelWorkRoute();moved=move(dx,dy,dt);}
+  else if(pendingWork)moved=followWorkRoute(dt);
+ }
  const wasWalking=walking;walking=moved;const desired=cameraView(player,canvas.clientWidth,canvas.clientHeight);if(!camera)camera=desired;const factor=1-Math.exp(-10*dt),following=Math.hypot(desired.x-camera.x,desired.y-camera.y)>.02;camera={...desired,x:camera.x+(desired.x-camera.x)*factor,y:camera.y+(desired.y-camera.y)*factor};
  if(moved||wasWalking!==walking||following||time<pouringUntil||farm.cells.some(c=>c.plant?.stage===3&&!c.plant.withered&&c.plant.colorful)){updateAction();render();}
  if(returningToVillage(player))returnVillage();else requestAnimationFrame(tick);
 }
 function worldPoint(e){const b=canvas.getBoundingClientRect();return {x:camera.x+(e.clientX-b.left)/camera.scale,y:camera.y+(e.clientY-b.top)/camera.scale};}
-canvas.addEventListener('pointerdown',e=>{if(!ready||harvest||tilling||watering||gesture||boxOpen)return;canvas.focus();canvas.setPointerCapture(e.pointerId);const b=canvas.getBoundingClientRect();gesture={id:e.pointerId,x:e.clientX,y:e.clientY,localX:e.clientX-b.left,localY:e.clientY-b.top,canSwipe:e.clientY-b.top>=b.height*.5,drag:false,dx:0,dy:0};path=[];});
-canvas.addEventListener('pointermove',e=>{if(!gesture||gesture.id!==e.pointerId||!gesture.canSwipe)return;const dx=e.clientX-gesture.x,dy=e.clientY-gesture.y,norm=Math.hypot(dx,dy);if(norm>8){gesture.drag=true;const ratio=norm>38?38/norm:1;gesture.dx=dx*ratio/38;gesture.dy=dy*ratio/38;stick.style.left=`${Math.max(62,Math.min(canvas.clientWidth-62,gesture.localX))}px`;stick.style.top=`${Math.max(62,Math.min(canvas.clientHeight-62,gesture.localY))}px`;stick.classList.add('active');knob.style.transform=`translate(${dx*ratio}px,${dy*ratio}px)`;path=[];}});
-canvas.addEventListener('pointerup',e=>{if(!gesture||gesture.id!==e.pointerId)return;const tap=!gesture.drag&&Math.hypot(e.clientX-gesture.x,e.clientY-gesture.y)<=8,confirm=gesture.canSwipe;releaseStick();if(tap&&confirm){confirmNearbyAction(canvas);return;}if(tap){const point=worldPoint(e),index=farm.cells.findIndex((_,i)=>{const r=plotRect(i);return point.x>=r.x&&point.x<=r.x+r.w&&point.y>=r.y&&point.y<=r.y+r.h;});if(index>=0)performWork({type:'plot',index});else if(nearWater(point)&&nearWater(player))performWork({type:'well'});}});
+function requestWork(target){
+ const current=advanceFarm(farm);
+ const task=target.type==='plot'?nextAction(current.cells[target.index]):{tool:'refill'};
+ if(task.waiting||target.type==='well'&&farm.water===WATER_CAPACITY)return;
+ const center=target.type==='plot'?plantingPoint(target.index):null;
+ if(center?Math.hypot(center.x-player.x,center.y-player.y)<=PLOT_REACH:nearWater(player)){
+  performWork(target);
+  return;
+ }
+ path=routeToWork(player,target);
+ if(!path.length){status('そこまで行ける道が見つからないよ');return;}
+ pendingWork={...target,tool:task.tool};
+ status('作業する場所へ向かっているよ');
+}
+function followWorkRoute(dt){
+ const point=path[0];
+ const distance=Math.hypot(point.x-player.x,point.y-player.y);
+ const step=MAP.speed/SOURCE_SCALE*dt;
+ if(step<=0)return false;
+ const next=distance<=step?point:{
+  x:player.x+(point.x-player.x)*step/distance,
+  y:player.y+(point.y-player.y)*step/distance
+ };
+ if(!canWalk(next)){cancelWorkRoute();status('通れるところから選び直してね');return false;}
+ if(!sceneryReady(next))return false;
+ const moved=distance>0;
+ player={...next};
+ if(distance<=step)path.shift();
+ if(!path.length){
+  const target=pendingWork;
+  cancelWorkRoute();
+  const cell=target.type==='plot'?advanceFarm(farm).cells[target.index]:null;
+  if(!cell||nextAction(cell).tool===target.tool)performWork(target);
+ }
+ return moved;
+}
+function waterStationAt(point){
+ return nearWater(point)||FARM_PROPS.slice(0,2).some(p=>
+  point.x>=p.x-p.w/2&&point.x<=p.x+p.w/2&&point.y>=p.y-p.h&&point.y<=p.y
+ );
+}
+$('.farm-app').addEventListener('contextmenu',e=>e.preventDefault());
+$('.farm-app').addEventListener('selectstart',e=>e.preventDefault());
+canvas.addEventListener('pointerdown',e=>{
+ if(e.button!==0||!ready||harvest||tilling||watering||gesture||boxOpen)return;
+ cancelWorkRoute();
+ canvas.focus();
+ canvas.setPointerCapture(e.pointerId);
+ const b=canvas.getBoundingClientRect();
+ gesture={id:e.pointerId,x:e.clientX,y:e.clientY,start:performance.now(),localX:e.clientX-b.left,localY:e.clientY-b.top,canSwipe:e.clientY-b.top>=b.height*.5,drag:false,dx:0,dy:0};
+});
+canvas.addEventListener('pointermove',e=>{if(!gesture||gesture.id!==e.pointerId||!gesture.canSwipe)return;const dx=e.clientX-gesture.x,dy=e.clientY-gesture.y,norm=Math.hypot(dx,dy);if(norm>8){gesture.drag=true;const ratio=norm>38?38/norm:1;gesture.dx=dx*ratio/38;gesture.dy=dy*ratio/38;stick.style.left=`${Math.max(62,Math.min(canvas.clientWidth-62,gesture.localX))}px`;stick.style.top=`${Math.max(62,Math.min(canvas.clientHeight-62,gesture.localY))}px`;stick.classList.add('active');knob.style.transform=`translate(${dx*ratio}px,${dy*ratio}px)`;}});
+canvas.addEventListener('pointerup',e=>{
+ if(!gesture||gesture.id!==e.pointerId)return;
+ const tap=!gesture.drag&&performance.now()-gesture.start<500&&Math.hypot(e.clientX-gesture.x,e.clientY-gesture.y)<=8;
+ const confirm=gesture.canSwipe;
+ releaseStick();
+ if(!tap)return;
+ const point=worldPoint(e),index=farm.cells.findIndex((_,i)=>{
+  const r=plotRect(i);
+  return point.x>=r.x&&point.x<=r.x+r.w&&point.y>=r.y&&point.y<=r.y+r.h;
+ });
+ if(index>=0)requestWork({type:'plot',index});
+ else if(waterStationAt(point))requestWork({type:'well'});
+ else if(confirm)confirmNearbyAction(canvas);
+});
 for(const event of ['pointercancel','lostpointercapture'])canvas.addEventListener(event,e=>{if(gesture?.id===e.pointerId)releaseStick();});
-window.addEventListener('keydown',e=>{if(boxOpen){if(e.key==='Escape'){e.preventDefault();closeBox();}if(e.key==='Tab'){const buttons=[...overlay.querySelectorAll('button:not(:disabled)')],first=buttons[0],end=buttons[buttons.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();end.focus();}else if(!e.shiftKey&&document.activeElement===end){e.preventDefault();first.focus();}}return;}if(['INPUT','TEXTAREA','SELECT','SUMMARY'].includes(document.activeElement?.tagName))return;const key=e.key.length===1?e.key.toLowerCase():e.key;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d'].includes(key)){e.preventDefault();keys.add(key);}});
+window.addEventListener('keydown',e=>{if(boxOpen){if(e.key==='Escape'){e.preventDefault();closeBox();}if(e.key==='Tab'){const buttons=[...overlay.querySelectorAll('button:not(:disabled)')],first=buttons[0],end=buttons[buttons.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();end.focus();}else if(!e.shiftKey&&document.activeElement===end){e.preventDefault();first.focus();}}return;}if(['INPUT','TEXTAREA','SELECT','SUMMARY'].includes(document.activeElement?.tagName))return;const key=e.key.length===1?e.key.toLowerCase():e.key;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d'].includes(key)){e.preventDefault();cancelWorkRoute();keys.add(key);}});
 window.addEventListener('keyup',e=>keys.delete(e.key.length===1?e.key.toLowerCase():e.key));window.addEventListener('blur',halt);document.addEventListener('visibilitychange',()=>{halt();persist();});window.addEventListener('pagehide',persist);
 window.addEventListener('storage',e=>{if(e.key!==SAVE_KEY||!storage)return;const update=readSave(storage);if(!update.canSave){canSave=false;status(update.error);return;}halt();harvest=null;farm=update.farm;canSave=true;tilling=null;watering=null;status('ほかの画面の畑の変更を反映しました');updateAction();if(boxOpen)renderInventory();render();});
 viewport();
