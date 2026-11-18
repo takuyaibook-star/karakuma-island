@@ -1,6 +1,6 @@
 import {confirmNearbyAction} from './nearby-action.mjs?v=12';
 import {farmEntryState,destinationForExit} from './map-links.mjs';
-import {MAP,initialState,advance,scaleFor,characterHeight,screenToWorld,areaAt,clampX} from './model.mjs';
+import {MAP,initialState,advance,scaleFor,characterHeight,screenToWorld,areaAt,clampX} from './model.mjs?v=16';
 import {canStand,exitAt} from './terrain.mjs';
 import {findPath} from './navigation.mjs';
 import {setupMusic} from './music.mjs?v=6';
