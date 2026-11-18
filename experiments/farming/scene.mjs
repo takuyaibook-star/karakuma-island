@@ -1,7 +1,7 @@
-import {scaleFor,characterHeight} from '../../model.mjs';
+import {scaleFor,characterHeight} from '../../model.mjs?v=16';
 import {propBlocks} from './props.mjs?v=10';
 export {WATER_SOURCE,nearWater} from './props.mjs?v=10';
-import {COLS,nextGrowth,formatRemaining} from './farm.mjs?v=7';
+import {COLS,nextGrowth,formatRemaining} from './farm.mjs?v=16';
 // Source art uses larger pixels than the existing world; normalize it before applying the shared camera.
 export const SOURCE_SCALE=.65;
 export const WORLD={width:1536,height:1024};
@@ -22,7 +22,8 @@ export function canWalk(p){
  for(let pair=0;pair<2;pair++){const r=plotRect(pair*2);if(p.x>r.x-14&&p.x<r.x+r.w*2+14&&p.y>r.y-12&&p.y<r.y+r.h*2+12)return false;}
  return !propBlocks(p)&&!props.some(o=>((p.x-o.x)/o.rx)**2+((p.y-o.y)/o.ry)**2<1);
 }
-export function nearestPlot(p){let index=null,best=Infinity;for(let i=0;i<8;i++){const c=plantingPoint(i),d=Math.hypot(c.x-p.x,c.y-p.y);if(d<best){best=d;index=i;}}return best<=133?index:null;}
+export const PLOT_REACH=133;
+export function nearestPlot(p){let index=null,best=Infinity;for(let i=0;i<8;i++){const c=plantingPoint(i),d=Math.hypot(c.x-p.x,c.y-p.y);if(d<best){best=d;index=i;}}return best<=PLOT_REACH?index:null;}
 export function nextAction(cell,now=Date.now()){if(cell.cleared===false)return {tool:'clear',label:'すごいクワで開墾'};if(!cell.tilled)return {tool:'hoe',label:'ここを耕す'};if(!cell.plant)return {tool:'seed',label:'たねをまく'};if(cell.plant.withered)return {tool:'remove',label:'枯れた野菜を片づける'};if(cell.plant.stage===3)return {tool:'grow',label:'収穫する'};if(!cell.plant.watered)return {tool:'water',label:'みずをまく'};const phase=nextGrowth(cell.plant,now);return {tool:null,label:phase?`あと${formatRemaining(phase.ms)}`:'育つのを待とう',waiting:true};}
 export function returningToVillage(p){return p.y>=965&&p.x>=610&&p.x<=850;}
 function clear(a,b){const n=Math.max(1,Math.ceil(Math.hypot(b.x-a.x,b.y-a.y)/1));for(let i=0;i<=n;i++)if(!canWalk({x:a.x+(b.x-a.x)*i/n,y:a.y+(b.y-a.y)*i/n}))return false;return true;}
@@ -33,6 +34,24 @@ export function route(from,to){
  const start=nearest(from),goal=nearest(to);if(start===null||goal===null)return [];const queue=[start],parents=new Map([[start,null]]);let found=false;
  for(let q=0;q<queue.length;q++){const n=queue[q];if(n===goal){found=true;break;}const x=n%cols,y=Math.floor(n/cols);for(const [dx,dy] of [[0,1],[1,0],[0,-1],[-1,0]]){const xx=x+dx,yy=y+dy;if(xx<0||xx>=cols||yy<0||yy>=rows)continue;const nn=id(xx,yy);if(!parents.has(nn)&&canWalk(pos(nn))&&clear(pos(n),pos(nn))){parents.set(nn,n);queue.push(nn);}}}
  if(!found)return [];const raw=[];for(let n=goal;n!==null;n=parents.get(n))raw.push(pos(n));raw.reverse();raw.push(to);const result=[];let anchor=from,i=0;while(i<raw.length){let j=i;while(j+1<raw.length&&clear(anchor,raw[j+1]))j++;result.push(raw[j]);anchor=raw[j];i=j+1;}return result;
+}
+
+export function routeToWork(from, target) {
+ const center=target.type==='well'?WATER_SOURCE:plantingPoint(target.index);
+ if(target.type==='well')return route(from,center);
+ const tile=plotRect(target.index),bed=plotRect(target.index-target.index%2);
+ const candidates=[
+  {x:center.x,y:GRID.y-18},
+  {x:center.x,y:GRID.y+2*GRID.h+18},
+  {x:bed.x-20,y:tile.y+tile.h/2},
+  {x:bed.x+bed.w*2+20,y:tile.y+tile.h/2}
+ ].filter(p=>canWalk(p)&&Math.hypot(p.x-center.x,p.y-center.y)<=PLOT_REACH);
+ candidates.sort((a,b)=>Math.hypot(a.x-from.x,a.y-from.y)-Math.hypot(b.x-from.x,b.y-from.y));
+ for(const candidate of candidates){
+  const path=route(from,candidate);
+  if(path.length)return path;
+ }
+ return [];
 }
 
 export function cameraView(player,width,height){const scale=Math.max(scaleFor(width,height)*SOURCE_SCALE,width/WORLD.width,height/WORLD.height);return {scale,x:Math.max(0,Math.min(WORLD.width-width/scale,player.x-width/scale/2)),y:Math.max(0,Math.min(WORLD.height-height/scale,player.y-height*.7/scale)),characterPixels:characterHeight(width,height)};}

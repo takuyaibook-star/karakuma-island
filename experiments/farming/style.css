@@ -18,3 +18,6 @@ progress{width:220px;height:12px;accent-color:#9cac70}#loading-count{font-size:1
 #plot-labels{position:absolute;inset:0;pointer-events:none;z-index:4}.plot-tag{position:absolute;transform:translateX(-50%);white-space:nowrap;min-width:76px;max-width:110px;padding:4px 7px;border:1px solid #cbb98b;border-radius:11px;background:#fff8e8;box-shadow:0 2px 5px #67512b1a;text-align:center;font-size:10px;line-height:17px;color:#756443;pointer-events:none}.action-row{z-index:5}#action{min-width:100px;min-height:44px;font-size:12px;padding:7px 9px;border-radius:12px;max-width:150px}@media(max-width:350px){#action{min-width:94px;font-size:11px;padding:7px}.plot-tag{font-size:9px}}
 
 #plot-fx{position:absolute;inset:0;z-index:6;pointer-events:none}
+
+.farm-app{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.plot-tag{opacity:.75}.plot-tag.is-covered{opacity:0}

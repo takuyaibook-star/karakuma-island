@@ -1,5 +1,5 @@
 import {createInventory,itemId,witheredItemId} from './items.mjs?v=7';
-export const COLS=4,ROWS=2,COLORFUL_CHANCE=.01,WATER_CAPACITY=3,HOE_DURABILITY=10,HARVESTS_PER_TILL=10;
+export const COLS=4,ROWS=2,COLORFUL_CHANCE=.01,WATER_CAPACITY=10,HOE_DURABILITY=10,HARVESTS_PER_TILL=10;
 export const CARROT={name:'にんじん',stages:3,rarity:'ふつう',value:10,sproutMs:5000,youngMs:125000,ripeMs:305000,wiltMs:3600000};
 // A dose covers the three carrot growth transitions; seed alone never dries out.
 export function soilIsWet(plant,now=Date.now()){return !!plant?.watered&&!plant.withered&&plant.growthStartedAt!==null&&plant.stage<3&&now<plant.growthStartedAt+CARROT.ripeMs;}
@@ -22,7 +22,7 @@ export function advanceFarm(farm,now=Date.now()){
 export function remainingMs(plant,now=Date.now()){if(!plant||plant.growthStartedAt===null)return null;return Math.max(0,CARROT.ripeMs-(now-plant.growthStartedAt));}
 export function nextGrowth(plant,now=Date.now()){if(!plant||!plant.watered||plant.growthStartedAt===null||plant.stage===3||plant.withered)return null;const elapsed=Math.max(0,now-plant.growthStartedAt);const phases=[[CARROT.sproutMs,'芽が出るまで'],[CARROT.youngMs,'育ち中になるまで'],[CARROT.ripeMs,'収穫まで']];const stage=Math.max(plant.stage,elapsed>=CARROT.youngMs?2:elapsed>=CARROT.sproutMs?1:0);if(elapsed>=CARROT.ripeMs)return {label:'収穫できるよ',ms:0};return {label:phases[stage][1],ms:Math.max(0,phases[stage][0]-elapsed)};}
 export function formatRemaining(ms){const remaining=Math.max(0,ms);if(remaining>=7200000)return `${Math.floor(remaining/3600000)}時間`;if(remaining>=3600000)return `1時間${Math.floor(remaining%3600000/60000)}分`;if(remaining>=120000)return `${Math.floor(remaining/60000)}分`;if(remaining>=60000)return `1分${Math.floor(remaining%60000/1000)}秒`;return `${Math.min(59,Math.ceil(remaining/1000))}秒`;}
-export function refillWater(farm){if(farm.inventory.watering_can<1)return {farm,changed:false,message:'じょうろを用意しよう'};return farm.water===WATER_CAPACITY?{farm,changed:false,message:'じょうろの水はいっぱいだよ'}:{farm:{...farm,water:WATER_CAPACITY},changed:true,message:'水をくんだ！ 3回分の水が入ったよ'};}
+export function refillWater(farm){if(farm.inventory.watering_can<1)return {farm,changed:false,message:'じょうろを用意しよう'};return farm.water===WATER_CAPACITY?{farm,changed:false,message:'じょうろの水はいっぱいだよ'}:{farm:{...farm,water:WATER_CAPACITY},changed:true,message:`水をくんだ！ ${WATER_CAPACITY}回分の水が入ったよ`};}
 export function tutorial(farm){if(farm.cells.some(c=>c.plant?.withered))return '枯れたにんじんを片づけて、また育てよう';if(farm.harvests>0)return '畑を育てよう。すごいクワで右側を開墾できるよ';if(farm.cells.some(c=>c.plant?.stage===3))return '育ったにんじんを収穫しよう！';if(farm.cells.some(c=>c.plant?.watered))return '芽が出るのを待とう！ 一度の水やりで最後まで育つよ';if(farm.cells.some(c=>c.plant))return farm.water===0?'水くみ場で水を汲もう！':'畑のそばで水をまこう！';if(farm.cells.some(c=>c.tilled))return '耕した畑のそばで、たねをまこう！';return '畑のそばで耕そう！';}
 export function act(original,index,{tool='hoe',random=Math.random,colorfulPreview=false,now=Date.now()}={}){
  let farm=advanceFarm(original,now);const no=message=>({farm,changed:false,message});

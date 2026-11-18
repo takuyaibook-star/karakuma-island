@@ -18,5 +18,5 @@ test('画面の足元位置のタップはカメラ中心に対応',()=>{const s
 test('画面サイズが変わっても移動速度は同じ',()=>{for(const [w,h] of [[360,780],[390,844],[430,932]]){const s=step(initialState(),{x:1,y:0},3,w,h);assert.ok(Math.abs(s.x-(MAP.startX+MAP.speed*3))<.01);}});
 test('横道は細くなり、城・森・港・野音への道は広がる',()=>{assert.equal(canStand({x:1300,y:530}),false);assert.ok(canStand({x:1300,y:500}));for(const p of [{x:605,y:350},{x:2090,y:350},{x:740,y:600},{x:1437,y:600}])assert.ok(canStand(p),JSON.stringify(p));});
 test('畑への道の判定形状・位置は変更しない',()=>assert.deepEqual(walkAreas[4],[[978,325],[1012,325],[1021,414],[1035,447],[956,447],[967,404]]));
-test('歩く速度は旧65px秒から約15%アップ、畑の右看板は通路外',()=>{assert.equal(MAP.speed,75);assert.equal(canStand({x:1123,y:424}),false);assert.ok(canStand({x:1123,y:460}));});
+test('歩く速度は75px秒から20%アップ、畑の右看板は通路外',()=>{assert.equal(MAP.speed,90);assert.equal(canStand({x:1123,y:424}),false);assert.ok(canStand({x:1123,y:460}));});
 console.log(JSON.stringify({passed:passed.length,tests:passed},null,2));
