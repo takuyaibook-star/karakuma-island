@@ -1,6 +1,7 @@
 import {scaleFor,characterHeight} from '../../model.mjs?v=16';
-import {propBlocks} from './props.mjs?v=10';
-export {WATER_SOURCE,nearWater} from './props.mjs?v=10';
+import {propBlocks,WATER_SOURCE} from './props.mjs?v=10';
+export {WATER_SOURCE};
+export {nearWater} from './props.mjs?v=10';
 import {COLS,nextGrowth,formatRemaining} from './farm.mjs?v=16';
 // Source art uses larger pixels than the existing world; normalize it before applying the shared camera.
 export const SOURCE_SCALE=.65;
