@@ -29,16 +29,16 @@ function updateAction(){
  const t=workTarget();action.hidden=!ready||boxOpen||(!harvest&&!t);action.disabled=!!harvest||!!tilling||!!watering||!!t?.waiting;
  if(harvest){action.textContent='収穫中…';action.setAttribute('aria-label','収穫中');positionAction();}
  else if(t){action.textContent=t.label;action.setAttribute('aria-label',t.type==='well'?t.label:`${t.label}（畑${t.index+1}${t.waiting?'・'+['種','芽','育ち中','収穫可'][farm.cells[t.index].plant.stage]:''}）`);positionAction();}
- updatePlotLabels(t);$('#tutorial').textContent=tutorial(farm);renderShortcuts();summary.textContent=`収穫 ${farm.harvests}こ`;$('#water-meter').textContent=`水 ${farm.water}/3`;
+ updatePlotLabels(t);fadeOverlappingLabels();$('#tutorial').textContent=tutorial(farm);renderShortcuts();summary.textContent=`収穫 ${farm.harvests}こ`;$('#water-meter').textContent=`水 ${farm.water}/3`;
  const guide=$('#water-guide');guide.hidden=farm.water>0||boxOpen;
  if(!guide.hidden){const a=Math.atan2(WATER_SOURCE.y-player.y,WATER_SOURCE.x-player.x);$('#water-arrow').style.transform=`rotate(${a}rad)`;}
 }
 function performWork(target=null){
  if(!ready||harvest||tilling||watering||boxOpen)return;farm=advanceFarm(farm);const t=target?.type==='plot'?{...target,...nextAction(farm.cells[target.index])}:target?.type==='well'?(nearWater(player)&&farm.water<3?{type:'well',tool:'refill'}:null):workTarget();if(!t||t.waiting)return;if(t.type==='plot'){const point=plantingPoint(t.index);if(Math.hypot(point.x-player.x,point.y-player.y)>133){status('畑のそばまで歩いてから作業しよう');return;}}halt();
- if(t.type==='well'){const result=refillWater(farm);farm=result.farm;effects.play('water');status(result.message);persist();updateAction();render();return;}
+ if(t.type==='well'){const result=refillWater(farm);farm=result.farm;if(result.changed)holdWateringCan();effects.play('water');status(result.message);persist();updateAction();render();return;}
  const result=act(farm,t.index,{tool:t.tool,colorfulPreview:preview.checked});
  if(result.harvested){const h=cameraView(player,canvas.clientWidth,canvas.clientHeight).characterPixels/camera.scale;harvest={index:t.index,result,start:performance.now(),from:plantingPoint(t.index),to:{x:player.x,y:player.y-h*.55}};effects.play('harvest');status('すぽんっ！');updateAction();render();return;}
- farm=result.farm;if(result.changed){if(t.tool==='seed')preview.checked=false;if(['hoe','clear','seed','water'].includes(t.tool))effects.play(t.tool==='clear'?'hoe':t.tool);if(t.tool==='water'){watering={index:t.index,start:performance.now()};pouringUntil=watering.start+750;}if(t.tool==='hoe'||t.tool==='clear')tilling={index:t.index,start:performance.now(),super:t.tool==='clear'};persist();}
+ farm=result.farm;if(result.changed){if(t.tool==='seed')preview.checked=false;if(['hoe','clear','seed','water'].includes(t.tool))effects.play(t.tool==='clear'?'hoe':t.tool);if(t.tool==='water'){watering={index:t.index,start:performance.now()};pouringUntil=watering.start+750;holdWateringCan();}if(t.tool==='hoe'||t.tool==='clear')tilling={index:t.index,start:performance.now(),super:t.tool==='clear'};persist();}
  status(result.message);updateAction();render();
 }
 action.addEventListener('click',()=>performWork());
@@ -57,7 +57,41 @@ function prepareSprites(){
 }
 function plantSprite(p,i,{pulled=false}={}){const s=sprites.find(s=>s.stage===p.stage&&!!s.withered===!!p.withered&&s.colorful===(p.colorful&&p.stage===3&&!p.withered))||sprites.find(s=>s.stage===2);if(p.stage<3||!s.bounds)return {s,placement:cropPlacement(i,p.stage)};const ground=plantingPoint(i),h=p.withered?132:174,scale=h/s.bounds.h;return {s,placement:{dx:ground.x-(s.bounds.rootX-s.bounds.x)*scale,dy:ground.y-h*(pulled?1:.62),dw:s.bounds.w*scale,dh:h}};}
 function drawPlanted(p,i){const {s,placement:q}=plantSprite(p,i),ground=plantingPoint(i);ctx.save();ctx.beginPath();ctx.rect(q.dx-3,q.dy-3,q.dw+6,ground.y-q.dy+5);ctx.clip();ctx.drawImage(s.layer,q.dx,q.dy,q.dw,q.dh);ctx.restore();if(p.stage===3){ctx.fillStyle='#79553530';ctx.beginPath();ctx.ellipse(ground.x,ground.y+2,19,4,0,0,Math.PI*2);ctx.fill();}}
-function drawBear(){const h=cameraView(player,canvas.clientWidth,canvas.clientHeight).characterPixels/camera.scale;const image=['hoe','super_hoe'].includes(farm.equipped)?images.hoe:farm.equipped==='watering_can'?(farm.water>0||performance.now()<pouringUntil?images.canFull:images.canEmpty):images.bear;const actual=image||images.bear;let b=characterBounds.get(actual);if(!b){b=bounds(actual);characterBounds.set(actual,b);}const w=h*b.w/b.h,bounce=walking?Math.sin(last*.013)*3:0;ctx.fillStyle='#72503030';ctx.beginPath();ctx.ellipse(player.x,player.y,w*.3,6,0,0,Math.PI*2);ctx.fill();ctx.drawImage(actual,b.x,b.y,b.w,b.h,player.x-w/2,player.y-h+bounce,w,h);}
+function holdWateringCan(){
+ equipmentRequest++;
+ if(farm.equipped!=='watering_can')farm=equip(farm,'watering_can');
+ for(const key of ['canFull','canEmpty']){
+  if(!images[key])lazyImage(key).then(image=>{images[key]=image;updateAction();render();}).catch(()=>{});
+ }
+}
+function bearPose(view){
+ const h=view.characterPixels/view.scale;const image=['hoe','super_hoe'].includes(farm.equipped)?images.hoe:farm.equipped==='watering_can'?(farm.water>0||performance.now()<pouringUntil?images.canFull:images.canEmpty):images.bear;const actual=image||images.bear;let b=characterBounds.get(actual);if(!b){b=bounds(actual);characterBounds.set(actual,b);}const w=h*b.w/b.h,bounce=walking?Math.sin(last*.013)*3:0;
+ return {image:actual,source:b,x:player.x-w/2,y:player.y-h+bounce,w,h};
+}
+function drawBear(){
+ const p=bearPose(camera),b=p.source;
+ ctx.fillStyle='#72503030';ctx.beginPath();ctx.ellipse(player.x,player.y,p.w*.3,6,0,0,Math.PI*2);ctx.fill();
+ ctx.drawImage(p.image,b.x,b.y,b.w,b.h,p.x,p.y,p.w,p.h);
+}
+function fadeOverlappingLabels(){
+ if(!ready)return;
+ const view=camera||cameraView(player,canvas.clientWidth,canvas.clientHeight);
+ const field=canvas.getBoundingClientRect();
+ const blockers=[bearPose(view)];
+ for(const p of FARM_PROPS){
+  if(images[p.image])blockers.push({x:p.x-p.w/2,y:p.y-p.h,w:p.w,h:p.h});
+ }
+ const rectangles=blockers.map(p=>{
+  const left=field.left+(p.x-view.x)*view.scale,top=field.top+(p.y-view.y)*view.scale;
+  return {left,top,right:left+p.w*view.scale,bottom:top+p.h*view.scale};
+ });
+ for(const label of [action,...plotTags]){
+  if(label.hidden)continue;
+  const rect=label.getBoundingClientRect();
+  const overlaps=rectangles.some(p=>rect.right>p.left&&rect.left<p.right&&rect.bottom>p.top&&rect.top<p.bottom);
+  label.classList.toggle('overlaps-scene-object',overlaps);
+ }
+}
 // Floating action tools use the adopted item art. The equipped character remains unchanged.
 function drawToolImage(image,x,y,w,h,angle){if(!image)return false;let b=characterBounds.get(image);if(!b){b=bounds(image);characterBounds.set(image,b);}ctx.save();ctx.translate(x,y);ctx.rotate(angle);ctx.drawImage(image,b.x,b.y,b.w,b.h,-w/2,-h/2,w,h);ctx.restore();return true;}
 function drawTilling(time){if(!tilling)return;const t=Math.min(1,(time-tilling.start)/750),p=plantingPoint(tilling.index),lift=Math.abs(Math.sin(t*Math.PI*3));
@@ -97,7 +131,7 @@ function render(){
  if(harvest){const pose=harvestPose(harvest.from,harvest.to,performance.now()-harvest.start),p=farm.cells[harvest.index].plant,{s,placement:q}=plantSprite(p,harvest.index);ctx.save();if(performance.now()-harvest.start<HARVEST_MS*.7){ctx.beginPath();ctx.rect(0,0,WORLD.width,harvest.from.y+5);ctx.clip();}ctx.translate(pose.x,pose.y);ctx.rotate(pose.tilt);ctx.scale(pose.scale,pose.scale);ctx.globalAlpha=pose.alpha;ctx.drawImage(s.layer,q.dx-harvest.from.x,q.dy-harvest.from.y,q.dw,q.dh);ctx.restore();}
 }
 function move(dx,dy,dt){const length=Math.hypot(dx,dy);if(!length)return false;const step=75/SOURCE_SCALE*dt*Math.min(1,length),x=dx/length*step,y=dy/length*step;if(!sceneryReady({x:player.x+x,y:player.y+y}))return false;let changed=false;if(canWalk({x:player.x+x,y:player.y})){player.x+=x;changed=true;}if(canWalk({x:player.x,y:player.y+y})){player.y+=y;changed=true;}return changed;}
-function returnVillage(){if(transitioning)return;transitioning=true;persist();halt();if(window.parent!==window&&window.parent.__islandNavigate)window.parent.__islandNavigate('village');else location.assign(new URL('../../?from=farm&v=7',location.href).href);}
+function returnVillage(){if(transitioning)return;transitioning=true;if(farm.equipped==='watering_can')farm=equip(farm,null);persist();halt();if(window.parent!==window&&window.parent.__islandNavigate)window.parent.__islandNavigate('village');else location.assign(new URL('../../?from=farm&v=7',location.href).href);}
 function tick(time){
  if(transitioning)return;const dt=Math.min(.04,(time-last)/1000||0);last=time;
  if(time-lastClock>=200){lastClock=time;const next=advanceFarm(farm);if(next!==farm){const justWithered=next.cells.some((c,i)=>c.plant?.withered&&!farm.cells[i].plant?.withered);farm=next;persist();if(justWithered)status('にんじんが枯れたよ。近づいて片づけよう');render();}updateAction();}
@@ -125,7 +159,7 @@ if(farm.cells.some(c=>c.plant?.withered))required.push('withered');
 if(farm.cells.some(c=>c.plant?.stage===3&&!c.plant.withered))required.push('ripe');
 if(farm.cells.some(c=>c.plant?.stage===3&&!c.plant.withered&&c.plant.colorful))required.push('colorful');
 let loadedImages=0;images={};
-Promise.all(required.map(async key=>{images[key]=await lazyImage(key);loadedImages++;window.__islandBoot?.progress(`近くの景色を読み込んでいます… ${loadedImages}/${required.length}`,loadedImages,required.length);})).then(async()=>{prepareSprites();if(saved.migrated)persist();ready=true;updateAction();render();window.__islandBoot?.ready();$('#loading').hidden=true;if(saved.error)status(saved.error);requestAnimationFrame(tick);for(const key of Object.keys(urls).filter(k=>!required.includes(k))){try{images[key]=await lazyImage(key);if(['ripe','colorful','withered'].includes(key))prepareSprites();render();}catch{status('一部の画像が遅れています。道具は選択時に再試行します');}}}).catch(e=>window.__islandBoot?.fail(e.message));
+Promise.all(required.map(async key=>{images[key]=await lazyImage(key);loadedImages++;window.__islandBoot?.progress(`近くの景色を読み込んでいます… ${loadedImages}/${required.length}`,loadedImages,required.length);})).then(async()=>{prepareSprites();if(saved.migrated)persist();ready=true;updateAction();render();window.__islandBoot?.ready();$('#loading').hidden=true;if(saved.error)status(saved.error);requestAnimationFrame(tick);for(const key of [...new Set(['canFull','canEmpty',...Object.keys(urls)])].filter(k=>!required.includes(k))){try{images[key]=await lazyImage(key);if(['ripe','colorful','withered'].includes(key))prepareSprites();render();}catch{status('一部の画像が遅れています。道具は選択時に再試行します');}}}).catch(e=>window.__islandBoot?.fail(e.message));
 
 let pendingScenery=false,sceneryRetryAt=0;
 function sceneryReady(position){const v=cameraView(position,canvas.clientWidth,canvas.clientHeight),missing=[...visibleBackground(v,canvas.clientWidth,canvas.clientHeight).map(t=>t.key),...propAssetsForView(v,canvas.clientWidth,canvas.clientHeight)].filter(key=>!images[key]);if(!missing.length)return true;if(!pendingScenery&&Date.now()>=sceneryRetryAt){pendingScenery=true;status('隣の景色を準備しているよ…');Promise.all(missing.map(async key=>{images[key]=await lazyImage(key);})).then(()=>render()).catch(()=>{sceneryRetryAt=Date.now()+5000;status('景色を読み込めませんでした。少し待ってから歩いてね')}).finally(()=>pendingScenery=false);}return false;}
