@@ -82,15 +82,11 @@ function positionOverlappingLabels(){
   return {left,top,right:left+p.w*view.scale,bottom:top+p.h*view.scale};
  };
  const bear=toScreen(bearPose(view));
- const props=FARM_PROPS.filter(p=>images[p.image])
-  .map(p=>toScreen({x:p.x-p.w/2,y:p.y-p.h,w:p.w,h:p.h}));
  const intersects=(a,b)=>a.right>b.left&&a.left<b.right&&a.bottom>b.top&&a.top<b.bottom;
  for(const label of [action,...plotTags]){
   if(label.hidden)continue;
   const rect=label.getBoundingClientRect();
-  const overlapsBear=intersects(rect,bear);
-  label.classList.toggle('overlaps-scene-object',!overlapsBear&&props.some(p=>intersects(p,rect)));
-  if(!overlapsBear)continue;
+  if(!intersects(rect,bear))continue;
 
   // Positions were reset to their plot anchors earlier in this update.
   const anchor=label===action?label.parentElement:label;
