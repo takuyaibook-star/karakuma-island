@@ -1,3 +1,4 @@
+import {confirmNearbyAction} from './nearby-action.mjs?v=12';
 import {farmEntryState,destinationForExit} from './map-links.mjs';
 import {MAP,initialState,advance,scaleFor,characterHeight,screenToWorld,areaAt,clampX} from './model.mjs';
 import {canStand,exitAt} from './terrain.mjs';
@@ -69,7 +70,7 @@ window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));window.addE
 function updateSwipe(dx,dy){const norm=Math.hypot(dx,dy),ratio=norm>38?38/norm:1,x=dx*ratio,y=dy*ratio;joystick=norm<6?{x:0,y:0}:{x:x/38,y:y/38};knob.style.transform=`translate(${x}px,${y}px)`;}
 canvas.addEventListener('pointerdown',e=>{if(pointer||!ready)return;canvas.focus();const rect=canvas.getBoundingClientRect(),localX=e.clientX-rect.left,localY=e.clientY-rect.top;pointer={id:e.pointerId,x:e.clientX,y:e.clientY,localX,localY,canSwipe:localY>=height*.5,swiping:false};state.target=null;state.path=[];canvas.setPointerCapture(e.pointerId);});
 canvas.addEventListener('pointermove',e=>{if(!pointer||pointer.id!==e.pointerId||!pointer.canSwipe)return;const dx=e.clientX-pointer.x,dy=e.clientY-pointer.y;if(Math.hypot(dx,dy)>8)pointer.swiping=true;if(pointer.swiping){joyPointer=e.pointerId;stick.style.left=`${Math.max(62,Math.min(width-62,pointer.localX))}px`;stick.style.top=`${Math.max(62,Math.min(height-62,pointer.localY))}px`;stick.classList.add('active');updateSwipe(dx,dy);}});
-canvas.addEventListener('pointerup',e=>{if(!pointer||pointer.id!==e.pointerId)return;const p=pointer;pointer=null;if(p.swiping){releaseStick();return;}if(Math.hypot(e.clientX-p.x,e.clientY-p.y)>12)return;const rect=canvas.getBoundingClientRect(),point=screenToWorld(e.clientX-rect.left,e.clientY-rect.top,state,width,height),path=findPath(state,point);state.path=path;state.target=state.path.shift()??null;if(!state.target)notify('歩ける道の上を選んでください');});
+canvas.addEventListener('pointerup',e=>{if(!pointer||pointer.id!==e.pointerId)return;const p=pointer;pointer=null;if(p.swiping){releaseStick();return;}if(Math.hypot(e.clientX-p.x,e.clientY-p.y)>(p.canSwipe?8:12))return;if(p.canSwipe){confirmNearbyAction(canvas);return;}const rect=canvas.getBoundingClientRect(),point=screenToWorld(e.clientX-rect.left,e.clientY-rect.top,state,width,height),path=findPath(state,point);state.path=path;state.target=state.path.shift()??null;if(!state.target)notify('歩ける道の上を選んでください');});
 for(const event of ['pointercancel','lostpointercapture'])canvas.addEventListener(event,e=>{if(pointer?.id===e.pointerId){pointer=null;releaseStick();}});
 document.querySelector('#reset').addEventListener('click',reset);
 setupMusic(document.querySelector('#bgm'),document.querySelector('#music'),notify,()=>canvas.focus());
