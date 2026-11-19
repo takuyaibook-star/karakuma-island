@@ -1,0 +1,84 @@
+import {createInventory,itemId,witheredItemId} from './items.mjs?v=7';
+export const COLS=4,ROWS=2,COLORFUL_CHANCE=.01,WATER_CAPACITY=10,HOE_DURABILITY=10,HARVESTS_PER_TILL=10;
+export const CARROT={name:'にんじん',stages:3,rarity:'ふつう',value:10,sproutMs:5000,youngMs:125000,ripeMs:305000,wiltMs:3600000};
+export const PUMPKIN={name:'かぼちゃ',stages:5,rarity:'ふつう',value:null,sproutMs:15000,ripeMs:600000,wiltMs:7200000};
+export const CROPS=Object.freeze({carrot:CARROT,pumpkin:PUMPKIN});
+const growthTimes={
+ carrot:[CARROT.sproutMs,CARROT.youngMs,CARROT.ripeMs],
+ pumpkin:[PUMPKIN.sproutMs,120000,240000,420000,PUMPKIN.ripeMs]
+};
+const growthLabels={
+ carrot:['芽が出るまで','育ち中になるまで','収穫まで'],
+ pumpkin:['芽が出るまで','花が咲くまで','実がつくまで','実が色づくまで','収穫まで']
+};
+export function cropKind(plant){return plant?.crop??'carrot';}
+export function cropSpec(plant){const id=cropKind(plant);return typeof id==='string'&&Object.prototype.hasOwnProperty.call(CROPS,id)?CROPS[id]:undefined;}
+export function isMature(plant){return !!plant&&plant.stage===cropSpec(plant)?.stages;}
+function stageAt(plant,elapsed){const times=growthTimes[cropKind(plant)],next=times.findIndex(ms=>ms>elapsed);return Math.max(plant.stage,next===-1?times.length:next);}
+export function soilIsWet(plant,now=Date.now()){return !!plant?.watered&&!plant.withered&&plant.growthStartedAt!==null&&!isMature(plant)&&now<plant.growthStartedAt+cropSpec(plant).ripeMs;}
+export const INITIALLY_CLEARED=[0,1,4,5];
+export function createFarm(){return {cells:Array.from({length:COLS*ROWS},(_,i)=>({cleared:INITIALLY_CLEARED.includes(i),tilled:false,harvestsSinceTill:0,plant:null})),nextId:1,harvests:0,colorful:0,value:0,water:WATER_CAPACITY,hoeUses:HOE_DURABILITY,equipped:null,inventory:createInventory()};}
+export function equip(farm,tool){if(tool!==null&&!['hoe','watering_can','super_hoe'].includes(tool))return farm;if(tool&&farm.inventory[tool]<=0)return farm;return {...farm,equipped:farm.equipped===tool?null:tool};}
+export function trialTools(farm){return {...farm,hoeUses:HOE_DURABILITY,inventory:{...farm.inventory,hoe:1,super_hoe:farm.inventory.super_hoe+1}};}
+export function advanceFarm(farm,now=Date.now()){
+ let changed=false;
+ const cells=farm.cells.map(cell=>{
+  const p=cell.plant;if(!p||p.growthStartedAt===null||p.withered)return cell;
+  const elapsed=Math.max(0,now-p.growthStartedAt);
+  const crop=cropSpec(p),stage=stageAt(p,elapsed);
+  const drySince=stage===crop.stages?(p.drySince??p.growthStartedAt+crop.ripeMs):null;
+  const withered=drySince!==null&&now-drySince>=crop.wiltMs;
+  if(stage===p.stage&&drySince===(p.drySince??null)&&withered===!!p.withered)return cell;
+  changed=true;return {...cell,plant:{...p,stage,drySince,withered}};
+ });return changed?{...farm,cells}:farm;
+}
+export function remainingMs(plant,now=Date.now()){if(!plant||plant.growthStartedAt===null)return null;return Math.max(0,cropSpec(plant).ripeMs-(now-plant.growthStartedAt));}
+export function nextGrowth(plant,now=Date.now()){
+ if(!plant?.watered||plant.growthStartedAt===null||isMature(plant)||plant.withered)return null;
+ const elapsed=Math.max(0,now-plant.growthStartedAt),stage=stageAt(plant,elapsed),kind=cropKind(plant);
+ const deadline=growthTimes[kind][stage];
+ return deadline===undefined?{label:'収穫できるよ',ms:0}:{label:growthLabels[kind][stage],ms:deadline-elapsed};
+}
+export function formatRemaining(ms){const remaining=Math.max(0,ms);if(remaining>=7200000)return `${Math.floor(remaining/3600000)}時間`;if(remaining>=3600000)return `1時間${Math.floor(remaining%3600000/60000)}分`;if(remaining>=120000)return `${Math.floor(remaining/60000)}分`;if(remaining>=60000)return `1分${Math.floor(remaining%60000/1000)}秒`;return `${Math.min(59,Math.ceil(remaining/1000))}秒`;}
+export function refillWater(farm){if(farm.inventory.watering_can<1)return {farm,changed:false,message:'じょうろを用意しよう'};return farm.water===WATER_CAPACITY?{farm,changed:false,message:'じょうろの水はいっぱいだよ'}:{farm:{...farm,water:WATER_CAPACITY},changed:true,message:`水をくんだ！ ${WATER_CAPACITY}回分の水が入ったよ`};}
+export function tutorial(farm){if(farm.cells.some(c=>c.plant?.withered))return '枯れた野菜を片づけて、また育てよう';if(farm.harvests>0)return '畑を育てよう。すごいクワで右側を開墾できるよ';if(farm.cells.some(c=>isMature(c.plant)))return '育った野菜を収穫しよう！';if(farm.cells.some(c=>c.plant?.watered))return '一度の水やりで最後まで育つよ。畑の上に残り時間が出るよ';if(farm.cells.some(c=>c.plant))return farm.water===0?'水くみ場で水を汲もう！':'畑のそばで水をまこう！';if(farm.cells.some(c=>c.tilled))return '耕した畑のそばで、たねをまこう！';return '畑のそばで耕そう！';}
+export function act(original,index,{tool='hoe',crop='carrot',random=Math.random,colorfulPreview=false,now=Date.now()}={}){
+ let farm=advanceFarm(original,now);const no=message=>({farm,changed:false,message});
+ if(!Number.isInteger(index)||index<0||index>=COLS*ROWS)return no('畑に近づいて作業しよう');
+ if(!['clear','hoe','seed','water','grow','remove'].includes(tool))return no('今できる作業を選ぼう');
+ const old=farm.cells[index],copy=()=>({...farm,cells:farm.cells.map(c=>({...c})),inventory:{...farm.inventory}});
+ if(tool==='clear'){
+  if(old.cleared)return no('ここはもう開墾してあるよ');
+  if(farm.inventory.super_hoe<1)return no('開墾には「すごいクワ」が必要だよ。イベントで手に入れよう');
+  const col=index%COLS,neighbors=[index-COLS,index+COLS,...(col?[index-1]:[]),...(col<COLS-1?[index+1]:[])];
+  if(!neighbors.some(i=>farm.cells[i]?.cleared))return no('開墾済みの畑の隣から広げよう');
+  const next=copy();next.cells[index].cleared=true;next.inventory.super_hoe--;if(!next.inventory.super_hoe&&next.equipped==='super_hoe')next.equipped=null;return {farm:next,changed:true,message:'開墾できた！ クワで耕そう'};
+ }
+ if(!old.cleared)return no('ここは未開墾。すごいクワで開墾しよう');
+ if(tool==='hoe'){
+  if(old.tilled)return no('ここはもう耕してあるよ');
+  if(farm.inventory.hoe<1||farm.hoeUses<1)return no('クワがないよ。クワを補充しよう');
+  const next=copy();next.cells[index].tilled=true;next.cells[index].harvestsSinceTill=0;next.hoeUses--;if(!next.hoeUses){next.inventory.hoe=0;if(next.equipped==='hoe')next.equipped=null;}return {farm:next,changed:true,message:`耕せた！ ここに種をまこう${next.hoeUses===0?'。クワを使い切ったよ':''}`};
+ }
+ if(!old.tilled)return no('まずクワで耕そう');
+ if(tool==='seed'){
+  if(old.plant)return no('ここではもう野菜が育っているよ');
+  if(!cropSpec({crop}))return no('まく種を選ぼう');
+  const sample=colorfulPreview?0:random(),plant={id:farm.nextId,...(crop==='pumpkin'?{crop}:{}),stage:0,watered:false,colorful:sample<COLORFUL_CHANCE,plantedAt:now,growthStartedAt:null,drySince:null,withered:false};
+  const next=copy();next.nextId++;next.cells[index].plant=plant;return {farm:next,changed:true,message:'種をまいた！ お水をあげよう'};
+ }
+ const plant=old.plant;if(!plant)return no('ここに種をまこう');
+ const spec=cropSpec(plant),kind=cropKind(plant);
+ if(plant.withered){if(tool!=='remove')return no(`枯れた${spec.name}を片づけよう`);const next=copy(),id=witheredItemId(kind,plant.stage);next.inventory[id]++;next.cells[index].plant=null;return {farm:next,changed:true,item:id,message:`枯れた${spec.name}を片づけて、アイテムボックスに入れたよ。また種をまこう`};}
+ if(isMature(plant)&&tool==='grow'){
+  const id=itemId(kind,plant.colorful),next=copy();next.harvests++;next.colorful+=Number(plant.colorful);next.value+=(spec.value??0)*(plant.colorful?3:1);next.inventory[id]++;next.cells[index].plant=null;next.cells[index].harvestsSinceTill++;const worn=next.cells[index].harvestsSinceTill>=HARVESTS_PER_TILL;if(worn)next.cells[index].tilled=false;
+  return {farm:next,changed:true,harvested:true,item:id,message:`${plant.colorful?'カラフルな':''}${spec.name}を収穫！${worn?' このマスは10回収穫したので、もう一度耕そう':' アイテムボックスに入ったよ'}`};
+ }
+ if(tool==='water'){
+  if(plant.watered)return no('お水はあげてあるよ。育つのを待とう');
+  if(farm.inventory.watering_can<1)return no('じょうろを用意しよう');
+  if(farm.water<=0)return no('水くみ場に行って水をくもう！');
+  const next=copy();next.water--;next.cells[index].plant={...plant,watered:true,growthStartedAt:now,drySince:null,withered:false};return {farm:next,changed:true,message:`じょろじょろ… ${spec.sproutMs/1000}秒で芽が出るよ`};
+ }
+ const phase=nextGrowth(plant,now);return no(isMature(plant)?'収穫できるよ':phase?`あと${formatRemaining(phase.ms)}`:'水をまこう');
+}
